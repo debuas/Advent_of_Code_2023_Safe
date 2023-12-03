@@ -7,6 +7,7 @@ use crate::day2::part2::run_day_2_part2;
 
 mod day1;
 mod day2;
+mod day3;
 
 fn main() {
     tracing_subscriber::fmt::init();
