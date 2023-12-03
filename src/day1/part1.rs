@@ -1,6 +1,6 @@
 use tracing::info;
 
-pub fn run_part_1() {
+pub fn run_day1_part_1() {
     info!("Running day 1 , Part 1");
     let input = include_str!("./input1.txt");
     info!("Loaded Input File, lines : {}", input.lines().count());

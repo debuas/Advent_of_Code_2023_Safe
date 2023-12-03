@@ -3,7 +3,7 @@ use tracing::{debug, info};
 
 
 pub struct Mappings<'a> (char, &'a str);
-pub fn run_part_2() {
+pub fn run_day1_part_2() {
     info!("Running day 1 , Part 2");
     let input = include_str!("./input1.txt");
     info!("Loaded Input File, lines : {}", input.lines().count());
