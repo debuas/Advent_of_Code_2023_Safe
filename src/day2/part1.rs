@@ -1,10 +1,10 @@
 use std::cmp::max;
 use std::ops::Add;
-use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
 use serde_enum_str::{Deserialize_enum_str, Serialize_enum_str};
 use tracing::info;
-use crate::day1::part1::solve_part_1_util;
+
 
 #[derive(Serialize_enum_str,Deserialize_enum_str,Debug,Clone,)]
 #[serde(rename_all ="lowercase")]
@@ -31,7 +31,7 @@ pub struct GameStat{
 
 impl GameStat{
 
-    pub fn from_record(record: &Record) -> Self{
+    fn from_record(record: &Record) -> Self{
         let mut stat = GameStat::default();
         match record.color {
             DrawColor::Red => {stat.red=record.amount}
@@ -40,10 +40,10 @@ impl GameStat{
         }
         stat
     }
-    pub fn from_records(records :&[Record])->Self{
+    fn from_records(records :&[Record])->Self{
         records
             .iter()
-            .fold(GameStat::default(), |mut acc,r|{
+            .fold(GameStat::default(), |acc,r|{
                 acc.add(GameStat::from_record(r))
             })
     }
@@ -100,7 +100,7 @@ pub fn run_day_2_part1(){
 
 
     let res = sum_of_ids_by_condition(&condition,&stats);
-    ;
+
     info!("Result = '{}'", res);
     println!("Result = '{}'", res);
 }
@@ -127,7 +127,7 @@ fn split_game_from_line(input : &str) -> (Game,Vec<&str>){
     let game = Game { id: tmp.first().unwrap().replace("Game ", "").parse::<u32>().unwrap() };
     println!("{:?}",game);
 
-    (game,tmp.last().unwrap().split(";").collect())
+    (game,tmp.last().unwrap().split(';').collect())
 }
 
 
@@ -137,29 +137,29 @@ fn count_items_per_draw(input : &str) -> GameStat {
     let records : Vec<Record> = res.
         iter()
         .map(|&i| {
-            let tmp : Vec<&str> = i.trim().split(" ").collect();
+            let tmp : Vec<&str> = i.trim().split(' ').collect();
             let amount = tmp.first().unwrap().parse::<u32>().unwrap();
             let color = tmp.last().unwrap().parse::<DrawColor>().unwrap();
             Record  {amount,color}
         })
         .collect();
     //Sum Up everything to per Game Color
-    let game_stat = GameStat::from_records(&records);
-    game_stat
+    
+    GameStat::from_records(&records)
 }
 
 fn sum_of_ids_by_condition(condition: &GameStat, game_stats : &[(Game,GameStat)]) -> u32 {
     game_stats
         .iter()
         .fold(0 , |acc,(game,stat)|{
-            if GameStat::compare_condition(&condition,stat) {acc+ game.id} else { acc }
+            if GameStat::compare_condition(condition,stat) {acc+ game.id} else { acc }
         })
 }
-
+#[cfg(test)]
 mod tests {
 
-    use tracing::info;
-    use crate::day2::part1::{GameStat, solve_from_input, split_game_from_line, sum_of_ids_by_condition};
+    use super::*;
+    
 
     #[test]
     fn test(){

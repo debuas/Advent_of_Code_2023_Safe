@@ -23,9 +23,8 @@ pub fn solve_part_1_util(input: &str) -> u32 {
         acc + compound
     })
 }
-
+#[cfg(test)]
 mod test {
-    #[allow(unused_imports)]
     use super::*;
 
     #[test]

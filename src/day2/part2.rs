@@ -15,7 +15,7 @@ pub fn run_day_2_part2(){
     let stats = crate::day2::part1::solve_from_input(input);
 
 
-    let res = stats.iter().fold(0,|acc,(game,stat)| {
+    let res = stats.iter().fold(0,|acc,(_game,stat)| {
         acc+stat.power()
     })
     ;

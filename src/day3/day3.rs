@@ -1,18 +1,12 @@
-use std::cell::{RefCell, RefMut};
 use std::cmp::{max, min};
-use std::collections::HashSet;
-use std::ops::{RangeFrom, RangeInclusive};
+
+use std::ops::{RangeInclusive};
 use itertools::Itertools;
 use tracing::{debug, info};
-use tracing::field::debug;
+
 use crate::day3::day3::SchemaDefinitions::{BLANK, DIGIT, GEAR, MARKER};
 
-#[derive(Debug)]
-struct SchematicSegment {
-    line1 : String,
-    line2 : String,
-    line3 : String,
-}
+
 #[derive(Debug,Clone,Ord, PartialOrd, Eq, PartialEq,Hash)]
 struct Position<T> {
     pub value: T,
@@ -21,96 +15,6 @@ struct Position<T> {
     pub index_end : i32,
 }
 
-//(x1,x2,y1,y2)
-fn intersect<T,A>(rect1:&Position<T>,rect2: &Position<A>) -> bool {
-
-    // Check if one rectangle is to the left of the other
-    if rect1.index_end < rect2.index_beg-1 || rect2.index_end+1 < rect1.index_beg {
-        return false;
-    }
-
-    // Check if one rectangle is above the other
-    if rect1.index_y < rect2.index_y - 1 || rect2.index_y < rect1.index_y - 1 {
-        return false;
-    }
-    // If the above conditions are not met, then the rectangles intersect
-    true
-}
-
-
-impl SchematicSegment {
-
-    pub fn from_slice(input : &[Option<&str>;3]) -> Self {
-        let line1 = input[0].unwrap_or("").to_string()+".";
-        let line2 = input[1].unwrap_or("").to_string()+".";
-        let line3 = input[2].unwrap_or("").to_string()+".";
-        Self{
-            line1,
-            line2,
-            line3,
-        }
-    }
-
-    pub fn read_part_numbers(&self, segment_index : i32) -> Vec<Position<u32>> {
-        let mut number_pos: Vec<Position<u32>> = vec![];
-        let mut symbol_pos: Vec<Position<bool>> = vec![];
-
-
-
-        let mut mapfn =  |acc : i32 ,c: char,index_y, mut buffer : RefMut<String>| {
-            if c.is_digit(10) {
-                buffer.push(c);
-            }else if c != '.' {
-                symbol_pos.push(Position{
-                    value: true,
-                    index_y,
-                    index_beg: acc+1,
-                    index_end: acc+1,
-                })
-            }else {
-                if let Some(x) = buffer.parse::<u32>().ok() {
-                    number_pos.push(Position{
-                        value: x,
-                        index_y,
-                        index_beg: acc+1-buffer.len() as i32,
-                        index_end: acc,
-                    });
-                }
-                buffer.clear()
-            }
-            ;acc+1
-        };
-
-        let  mut number_buf1 = RefCell::new(String::from(""));
-        self.line1.chars()
-            .fold(0,|acc,c| mapfn(acc,c,segment_index+1,number_buf1.borrow_mut()));
-        let  mut number_buf2 = RefCell::new(String::from(""));
-        self.line2.chars()
-            .fold(0,|acc,c| mapfn(acc,c,segment_index+2,number_buf2.borrow_mut()));
-        let  mut number_buf3 = RefCell::new(String::from(""));
-        self.line3.chars()
-            .fold(0,|acc,c| mapfn(acc,c,segment_index+3,number_buf3.borrow_mut()));
-
-        //validate findall number in range yPos-1 -> yPos+1 , x-1 ,x+1
-
-        println!("Positions numbs : {:?}",number_pos);
-        println!("Positions chars : {:?}",symbol_pos);
-
-        let part_numbers : Vec<Position<u32>>  = number_pos
-            .iter()
-            .filter(|e| {
-                let any = &symbol_pos
-                    .iter()
-                    .any(|p| {
-                        intersect(e,p)
-                    });
-                *any
-            })
-            .map(|e| e.clone())
-            .collect();
-        part_numbers
-    }
-}
 
 struct Schematic {
     schema : Vec<(usize,Vec<(usize,SchemaDefinitions)>)>
@@ -172,9 +76,7 @@ impl <T> AbstractPosition<T> {
     pub fn check_points_in_position(&self , to_check : &[(usize,usize)]) -> bool{
 
         to_check.iter()
-            .fold(false,|acc,e|{
-                acc || self.digit_position.contains(e)
-            })
+            .any(|e| self.digit_position.contains(e))
     }
 
 }
@@ -188,7 +90,7 @@ impl Schematic {
             .enumerate()
             .for_each(|(index,line)|{
                 let mut defs = Vec::new();
-                (format!("{}{}",line,definition_blank[0])).chars().fold(0,|acc :usize,c|{
+                format!("{}{}",line,definition_blank[0]).chars().fold(0,|acc :usize,c|{
                     let def =
                     if let Some (digit) = c.to_digit(10){
                         DIGIT(digit)
@@ -207,7 +109,7 @@ impl Schematic {
     }
 
     fn get_index(&self, x:usize, y:usize) -> Option<SchemaDefinitions> {
-        let res = self.schema.get(y).and_then(|it| it.1.get(x).and_then(|it|Some(it.clone().1)));
+        let res = self.schema.get(y).and_then(|it| it.1.get(x).map(|it| it.clone().1));
         res
     }
 
@@ -229,7 +131,7 @@ impl Schematic {
                     };
                 });
             });
-        let data : Vec<AbstractPosition<u32>> = collect.iter().flatten().map(|e|e.clone()).collect() ;
+        let data : Vec<AbstractPosition<u32>> = collect.iter().flatten().cloned().collect() ;
         data
     }
 
@@ -264,9 +166,9 @@ impl Schematic {
             .filter_map(|e|{
                 let checkpos = e.generate_scan_positions();
                 debug!("Position Check Gear : {:?}",checkpos);
-                let res = numbers.iter().filter_map(|e| {if e.check_points_in_position(checkpos.as_slice()) {Some(e.value.clone())}else { None }}).collect_vec()  ;
+                let res = numbers.iter().filter_map(|e| {if e.check_points_in_position(checkpos.as_slice()) {Some(e.value)}else { None }}).collect_vec()  ;
                 debug!("amount :{}",res.len() );
-                if(res.len()==2) {
+                if res.len()==2 {
                     Some((e,res))
                 } else { None }
             }).collect_vec()
@@ -291,8 +193,8 @@ pub fn run_day_3_part_2(){
 
 
 fn from_input_numbers(input : &str) -> u32{
-    let mut buffer : [Option<&str>;3] = [None,None,None];
-    let mut schems: Vec<SchematicSegment> = vec![];
+
+
 
     let schma = Schematic::from_schematic_string(input,&['.']);
 
@@ -307,29 +209,28 @@ fn from_input_numbers(input : &str) -> u32{
 
 }
 fn from_input_gears(input : &str) -> u32{
-    let mut buffer : [Option<&str>;3] = [None,None,None];
-    let mut schems: Vec<SchematicSegment> = vec![];
 
     let schma = Schematic::from_schematic_string(input,&['.']);
 
     let numbers = schma.get_all_numbers();
     let gears = schma.get_all_gears();
-    let valid_n = schma.validate_all_positions(numbers.as_slice()).clone();;
+    let valid_n = schma.validate_all_positions(numbers.as_slice()).clone();
     let valid_g = schma.validate_all_gear_positions(gears.as_slice(),valid_n.as_slice());
     info!("Amount of numbers : {}", numbers.len());
     info!("Amount of valid numbers : {}", valid_n.len());
     info!("Amount of gears : {}", gears.len());
     info!("Amount of valid gears : {}", valid_g.len());
 
-    valid_g.iter().fold(0,|acc,(pos,e)|acc+e.iter().fold(1,|acc,e|{debug!("l:{} r: {} pow : {}",acc, e, acc*e);acc*e}))
+    valid_g.iter().fold(0,|acc,(_pos,e)|acc+e.iter().fold(1,|acc,e|{debug!("l:{} r: {} pow : {}",acc, e, acc*e);acc*e}))
 
 
 }
 
 
-
+#[cfg(test)]
 mod tests {
-    use crate::day3::day3::{from_input_gears, from_input_numbers};
+
+    use super::{from_input_gears, from_input_numbers};
 
     #[test]
     fn test_part_1(){
