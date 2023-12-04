@@ -60,12 +60,11 @@ fn convert_string_to_numbers( input : &str) -> Vec<u32>{
 
 
     debug!("Converted:'{}' to '{:?}'",input ,nums);
-    return nums;
+    nums
 }
 
-
+#[cfg(test)]
 mod tests {
-    #[allow(unused_imports)]
     use super::*;
 
     #[test]
