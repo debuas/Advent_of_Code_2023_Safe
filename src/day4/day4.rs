@@ -12,7 +12,9 @@ pub fn run_day_4_part_1(){
     println!("Result: {:?}", res)
 }pub fn run_day_4_part_2(){
     let  input = include_str!("./input.txt");
-    let res = "";
+    let mut rounds = from_input_part_2(input);
+    let res = rounds.iter().fold(0,|acc,(k,e)| acc + e.amount);
+    info!("Result: {:?}", res);
     println!("Result: {:?}", res)
 }
 #[derive(Debug)]
@@ -156,9 +158,18 @@ mod tests {
     #[test]
     fn test_part_2(){
         let input = include_str!("./testInput1.txt");
-        let rounds = from_input_part_2(input);
+        let mut rounds = from_input_part_2(input);
         let sum = rounds.iter().fold(0,|acc,(k,e)| acc + e.amount);
         println!("{:?}",rounds);
-        println!("{:?}",sum)
+        println!("{:?}",sum);
+        assert_eq!(1,rounds.pop().unwrap().1.amount);
+        assert_eq!(14,rounds.pop().unwrap().1.amount);
+        assert_eq!(8,rounds.pop().unwrap().1.amount);
+        assert_eq!(4,rounds.pop().unwrap().1.amount);
+        assert_eq!(2,rounds.pop().unwrap().1.amount);
+        assert_eq!(1,rounds.pop().unwrap().1.amount);
+        assert_eq!(sum,30);
+
+
     }
 }
