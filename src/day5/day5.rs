@@ -1,10 +1,13 @@
+use rayon::iter::ParallelIterator;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::iter;
 use std::ops::{Range, RangeFrom};
 use std::slice::Iter;
+use std::sync::Arc;
 use itertools::Itertools;
 use rangemap::RangeMap;
-use tracing::info;
+use rayon::prelude::{IntoParallelIterator, IntoParallelRefIterator};
+use tracing::{debug, info};
 
 #[derive(Debug,Clone)]
 struct TypeMapping {
@@ -29,15 +32,34 @@ impl TypeMapping {
             res
         });
         dyn_fn
+    }
 
+    pub fn to_range_and_key_function_arc(&self) -> Arc<dyn for<'a> Fn(&'a u64) -> u64 + 'static> {
+
+        let range_start = self.source_range_start.clone();
+        let destination_start = self.destination_range_start.clone();
+        let dyn_fn : Arc<dyn for<'a> Fn(&'a u64) -> u64> = Arc::new(move |input : &u64| {
+            let x = *input - range_start;
+            let res = destination_start+ x;
+            res
+        });
+        dyn_fn
     }
 
     pub fn source_range(&self) -> Range<u64> {
         Range {start: self.source_range_start as u64, end: (self.source_range_start + self.range_len) as u64 }
     }
 
-
 }
+
+    pub fn static_key_to_range_function(range: &Range<u64> , dest_range_start : &u64 ,input : &u64) -> u64 {
+        if range.contains(input) {
+            let x = input - &range.start;
+            let res = dest_range_start + x;
+            res
+        } else { input.clone() }
+    }
+
 
 #[derive(Debug,Default,Clone)]
 struct MappingTypes {
@@ -58,21 +80,43 @@ impl TypeMap {
             .map(|v| (v.source_range(), v.to_range_and_key_function()))
             .collect_vec();
 
-
-
+        Self {
+            relates_to: types.mapping_out.clone(),
+            mappings,
+        }
+    }
+}
+#[derive(Debug,Clone)]
+struct TypeMapArc{
+    relates_to : String,
+    mappings : Vec<(Range<u64>, u64)>
+}
+impl TypeMapArc {
+    fn from_mapping_types(types: &MappingTypes) -> Self {
+        let mappings = types.mappings
+            .iter()
+            .map(|v| (v.source_range(),v.destination_range_start))
+            .collect_vec();
 
         Self {
             relates_to: types.mapping_out.clone(),
             mappings,
         }
     }
-
 }
+
+
 
 #[derive(Debug,Default,Clone)]
 struct Seeds {
     seeds: Vec<u64>
 }
+#[derive(Debug,Default,Clone)]
+struct SeedRange {
+    seeds: Vec<Range<u64>>
+}
+
+
 #[derive(Debug,Clone,Eq, PartialEq)]
 struct SeedTable {
     table : HashMap<String,u64>
@@ -108,11 +152,11 @@ pub fn run_day_5_part1(){
 
 
 pub fn run_day_5_part2(){
-    let input = include_str!("testinput1.txt");
+    let input = include_str!("input.txt");
     let res = from_input_part2(input);
-
-    info!("Result = '{}'", res);
-    println!("Result = '{}'", res);
+    let min = res.iter().min_by_key(|e| e.table["location"]);
+    info!("Result = '{:?}'", min);
+    println!("Result = '{:?}'", min);
 }
 
 fn from_input_part1(input :&str) -> Vec<SeedTable> {
@@ -213,13 +257,139 @@ fn from_input_part1(input :&str) -> Vec<SeedTable> {
         s
     }).collect_vec();
 
-    println!("{:#?}",seedTable);
+    info!("{:#?}",seedTable);
 
     seedTable
 }
 
-fn from_input_part2(input :&str) -> &'static str {
-""
+fn from_input_part2(input :&str) -> Vec<SeedTable> {
+    info!("RUNNING PART 2");
+    // Read Mappings´ Seperate into blocks starting with a string, split by ":" numbers next_input_string or blank
+    let binding = input
+        //Set End For Numbers as markers
+        .replace("\n\n", "\nENDOFNUMBERS\n");
+    //println!("{:?}",&binding);
+    let extract = binding
+        //need it still as Identifier
+        .lines()
+        .map(|l|l.split(':').collect_vec())
+        .map(|e|e.iter().flat_map( |&i|if i == "" {None} else {Some(i.replace(" map" ,""))} ).collect_vec())
+        .collect_vec();
+    //
+    //println!("{:?}",&extract);
+
+
+
+
+    let mut seeds : SeedRange = SeedRange::default();
+    let mut vec_mappings: Vec<MappingTypes> = vec![];
+    let mut fun_it = |it:  &'_ mut Iter<Vec<String>> | {
+        if let Some(identifier) = it.next() {
+            if identifier.first().unwrap() == "seeds" {
+                let seed  = identifier.last().unwrap()
+                    .split_whitespace()
+                    .flat_map(|e| {
+                    e.parse::<u64>()})
+                    .collect_vec()
+                    .chunks(2).map(|c| (c[0], c[0] + c[1]))
+                    .collect_vec();
+                info!("CALC SEED VEV{:?}",seed);
+                let mut ranges = Vec::<Range<u64>>::new();
+
+                let ranges = seed.iter()
+                    .map(|(a,b)| {
+                        info!("{}..{}",a,b);
+                        Range { start: *a, end: *b }
+                    }).collect_vec();
+                seeds.seeds = ranges.clone();
+            } else if identifier.first().unwrap().contains("-to-") {
+                //println!("Jumping into TO");
+                let split = identifier.first().unwrap().split("-to-").collect_vec();
+                let mut new_mapping = MappingTypes {
+                    mapping_in: split.first().unwrap().to_string(),
+                    mapping_out: split.last().unwrap().to_string(),
+                    mappings: vec![],
+                };
+                //iterate till marker
+                while let Some(x) = it.next() {
+                    if x.first().unwrap().contains("ENDOFNUMBERS") { break; } else {
+                        let maping_vec = x.first().unwrap().split_whitespace().flat_map(|i| i.parse::<u64>()).collect_vec();
+                        let type_map = TypeMapping {
+                            destination_range_start: maping_vec[0],
+                            source_range_start: maping_vec[1],
+                            range_len: maping_vec[2],
+                        };
+                        new_mapping.mappings.push(type_map)
+                    }
+                }
+                vec_mappings.push(new_mapping);
+
+
+            }
+            Some(0)
+        } else { None }
+
+    };
+
+
+    let _ = extract.iter()
+        .batching(|it| match fun_it(it) {
+            None => { None }
+            Some(ex) => { fun_it(it) }
+        }).collect_vec();
+
+    //println!("{:?}",&seeds);
+    //println!("{:?}",&vec_mappings);
+
+    //now Start a Mapping tree
+    // Seed Soil Fertilizer Water Light temperature humidity location
+
+    let multimap : HashMap<String,TypeMapArc>= HashMap::from_iter(
+        vec_mappings.iter().map(|types|{
+            (
+                types.mapping_in.clone(),
+                TypeMapArc::from_mapping_types(types)
+            )
+        }).collect_vec()
+    );
+    //println!("MAP : {:?}",multimap);
+    println!("SEEDS: {:?}", seeds );
+
+    let seedTable = seeds.seeds.iter().filter_map(|e|{
+        let count = e.clone().count();
+        info!("RUNNING SEED RANGE '{:?}' , LENGTH : '{}'",&e,count);
+
+
+
+        e.clone().into_par_iter().map(|e|{
+                debug!("processing : {}",e);
+                let mut s = SeedTable::new(&e);
+                let mut index = Some("seed");
+                while let Some(key) = index {
+                    if let Some(table)= multimap.get(key){
+                        let v = table.mappings
+                            .iter()
+                            .find_map(|(r,rd)|{
+                                if r.contains(&s.table[key]) {
+                                    Some(
+                                        static_key_to_range_function(r,rd,&s.table[key])
+                                        )
+                                }else {None}
+                            })
+                            .unwrap_or(s.table[key]) ;
+                        s.table.insert(table.relates_to.clone(),v);
+                        index= Some(&table.relates_to)
+                    } else {index = None}
+                }
+                debug!("This is {:?}",s);
+                s
+            }).min_by_key(|e|e.table["location"])
+    })
+        .collect_vec();
+
+    info!("{:#?}",seedTable);
+
+    seedTable
 }
 
 
@@ -249,8 +419,12 @@ mod tests {
 
     #[test]
     fn test_part2(){
+        tracing_subscriber::fmt::init();
         let input = include_str!("testinput1.txt");
         let res = from_input_part2(input);
+        let min = res.iter().min_by_key(|e| e.table["location"]).unwrap().table["location"];
+        println!("Result {:?}",min);
+        assert_eq!(min,46)
     }
 
 }
