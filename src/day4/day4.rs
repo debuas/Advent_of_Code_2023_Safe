@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use itertools::Itertools;
-use tracing::info;
+use tracing::{debug, info};
 
 pub fn run_day_4_part_1(){
     let  input = include_str!("./input.txt");
@@ -65,7 +65,7 @@ fn from_input_part1(input :&str) -> Vec<Vec<Card>>{
                     if let Some(n) = numbs.parse::<u32>().ok() {acc.push(n)};
                     acc
                 });
-                println!("{:?}",deck);
+                debug!("{:?}",deck);
                 Card {deck}
             }).collect_vec()
 
@@ -84,7 +84,7 @@ fn from_input_part_2<'a>(input : &str) -> Vec<(usize, WinsAndScratches)> {
                     if let Some(n) = numbs.parse::<u32>().ok() {acc.push(n)};
                     acc
                 });
-                println!("{:?}",deck);
+                debug!("{:?}",deck);
                 Card {deck}
             }).collect_vec()
 
@@ -104,12 +104,12 @@ fn from_input_part_2<'a>(input : &str) -> Vec<(usize, WinsAndScratches)> {
     winning_numbers.for_each(|(index,element)| {
         let get_element = &tracking_cards.borrow()[&index].clone();
         let range = index+1..=(index+get_element.wining_cards);
-        println!("Processing: {}",index);
+        debug!("Processing: {}",index);
         range.for_each(|e|{
 
             if let Some(w) = tracking_cards.borrow_mut().get_mut(&e) {
                 w.add_amount(get_element.amount);
-                println!("Updating index {} to {}", e,w.amount)
+                debug!("Updating index {} to {}", e,w.amount)
             } else { };
         })
         ;
@@ -124,6 +124,7 @@ fn from_input_part_2<'a>(input : &str) -> Vec<(usize, WinsAndScratches)> {
 
 mod tests {
     use itertools::{assert_equal, Itertools};
+    use tracing::{debug, info};
     use crate::day4::day4::{Card, from_input_part1, from_input_part_2};
 
     #[test]
