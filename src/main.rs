@@ -11,6 +11,7 @@ mod day1;
 mod day2;
 mod day3;
 mod day4;
+mod day6;
 
 fn main() {
     tracing_subscriber::fmt::init();
@@ -23,4 +24,6 @@ fn main() {
     run_day_3_part_2();
     run_day_4_part_1();
     run_day_4_part_2();
+    run_day_6_part_1();
+    run_day_6_part_2();
 }
