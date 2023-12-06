@@ -6,6 +6,7 @@ use crate::day2::part1::run_day_2_part1;
 use crate::day2::part2::run_day_2_part2;
 use crate::day3::day3::{run_day_3_part_1, run_day_3_part_2};
 use crate::day4::day4::{run_day_4_part_1, run_day_4_part_2};
+use crate::day6::day6::{run_day_6_part_1, run_day_6_part_2};
 
 mod day1;
 mod day2;
