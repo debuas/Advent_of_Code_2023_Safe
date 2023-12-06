@@ -16,9 +16,6 @@ struct TypeMapping {
     range_len: u64
 }
 
-
-
-
 impl TypeMapping {
 
     //Key,Value
@@ -262,6 +259,12 @@ fn from_input_part1(input :&str) -> Vec<SeedTable> {
     seedTable
 }
 
+
+
+
+
+
+
 fn from_input_part2(input :&str) -> Vec<SeedTable> {
     info!("RUNNING PART 2");
     // Read Mappings´ Seperate into blocks starting with a string, split by ":" numbers next_input_string or blank
@@ -338,12 +341,6 @@ fn from_input_part2(input :&str) -> Vec<SeedTable> {
             Some(ex) => { fun_it(it) }
         }).collect_vec();
 
-    //println!("{:?}",&seeds);
-    //println!("{:?}",&vec_mappings);
-
-    //now Start a Mapping tree
-    // Seed Soil Fertilizer Water Light temperature humidity location
-
     let multimap : HashMap<String,TypeMapArc>= HashMap::from_iter(
         vec_mappings.iter().map(|types|{
             (
@@ -392,6 +389,87 @@ fn from_input_part2(input :&str) -> Vec<SeedTable> {
     seedTable
 }
 
+#[derive(Debug)]
+struct RangeSeed {
+    source_range : Range<u64>,
+    destination_range : Range<u64>
+}
+
+struct SeedMap(Vec<RangeSeed>);
+
+fn improved_range_mapper(pre_processed_lines : &str){
+
+}
+
+fn optimize_part_2(input : &str) {
+    info!("RUNNING PART 2");
+    // Read Mappings´ Seperate into blocks starting with a string, split by ":" numbers next_input_string or blank
+    let binding = input
+        //Set End For Numbers as markers
+        .replace("\n\n", "\nENDOFNUMBERS\n");
+    //println!("{:?}",&binding);
+    let extract = binding
+        //need it still as Identifier
+        .lines()
+        .map(|l|l.split(':').collect_vec())
+        .map(|e|e.iter().flat_map( |&i|if i == "" {None} else {Some(i.replace(" map" ,""))} ).collect_vec())
+        .collect_vec();
+    //
+    //println!("{:?}",&extract);
+
+
+
+
+    let mut seeds : SeedRange = SeedRange::default();
+    let mut vec_mappings: Vec<MappingTypes> = vec![];
+    let mut fun_it = |it:  &'_ mut Iter<Vec<String>> | {
+        if let Some(identifier) = it.next() {
+            if identifier.first().unwrap() == "seeds" {
+                let seed  = identifier.last().unwrap()
+                    .split_whitespace()
+                    .flat_map(|e| {
+                        e.parse::<u64>()})
+                    .collect_vec()
+                    .chunks(2).map(|c| (c[0], c[0] + c[1]))
+                    .collect_vec();
+                info!("CALC SEED VEV{:?}",seed);
+                let mut ranges = Vec::<Range<u64>>::new();
+
+                let ranges = seed.iter()
+                    .map(|(a,b)| {
+                        info!("{}..{}",a,b);
+                        Range { start: *a, end: *b }
+                    }).collect_vec();
+                seeds.seeds = ranges.clone();
+            } else if identifier.first().unwrap().contains("-to-") {
+                //println!("Jumping into TO");
+                let split = identifier.first().unwrap().split("-to-").collect_vec();
+                let mut new_mapping = MappingTypes {
+                    mapping_in: split.first().unwrap().to_string(),
+                    mapping_out: split.last().unwrap().to_string(),
+                    mappings: vec![],
+                };
+                //iterate till marker
+                while let Some(x) = it.next() {
+                    if x.first().unwrap().contains("ENDOFNUMBERS") { break; } else {
+                        let maping_vec = x.first().unwrap().split_whitespace().flat_map(|i| i.parse::<u64>()).collect_vec();
+                        let type_map = TypeMapping {
+                            destination_range_start: maping_vec[0],
+                            source_range_start: maping_vec[1],
+                            range_len: maping_vec[2],
+                        };
+                        new_mapping.mappings.push(type_map)
+                    }
+                }
+                vec_mappings.push(new_mapping);
+
+
+            }
+            Some(0)
+        } else { None }
+
+    };
+}
 
 #[cfg(test)]
 mod tests {
