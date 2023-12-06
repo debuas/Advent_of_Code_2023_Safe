@@ -1,12 +1,12 @@
 use rayon::iter::ParallelIterator;
 use itertools::Itertools;
 use rayon::prelude::IntoParallelIterator;
-use tracing::{debug, instrument};
+use tracing::{debug, info, instrument};
 
 #[derive(Debug,Clone)]
 struct RaceData {
-    time : Vec<u32>,
-    distance : Vec<u32>
+    time : Vec<usize>,
+    distance : Vec<usize>
 }
 #[derive(Debug,Clone)]
 struct RaceDataCompact{
@@ -31,11 +31,11 @@ impl RaceData {
 
 }
 #[derive(Debug,Clone,Copy)]
-struct Race{time : u32 ,  distance : u32}
+struct Race{time : usize ,  distance : usize}
 
 impl Race {
 
-    fn from_vectors(time : Vec<u32>,distance : Vec<u32>) -> Vec<Self>{
+    fn from_vectors(time : Vec<usize>,distance : Vec<usize>) -> Vec<Self>{
         time.iter().zip(distance.iter())
             .map(|(&time,&distance)| Race{time,distance})
             .collect_vec()
@@ -56,10 +56,26 @@ impl Race {
 
 pub fn run_day_6_part_1() {
     let  input = include_str!("./input.txt");
+    let races = from_input_part_1(input) ;
+
+    let times = races.iter().map(|e| e.calculate_record_beat_counts()).collect_vec();
+    info!("Timings : {:#?}",times);
+    let res = races.first().unwrap().calculate_record_beat_counts().iter().fold(1,|a,b| a*b);
+
+    info!("Result :  {}" , res);
+    println!("Result :  {}" , res)
 }
 
 pub fn run_day_6_part_2() {
     let  input = include_str!("./input.txt");
+    let races = from_input_part_2(input) ;
+
+    let times = races.iter().map(|e| e.calculate_record_beat_counts()).collect_vec();
+    info!("Timings : {:#?}",times);
+    let res = races.first().unwrap().calculate_record_beat_counts().iter().fold(1,|a,b| a*b);
+
+    info!("Result :  {}" , res);
+    println!("Result :  {}" , res)
 }
 
 
@@ -71,8 +87,29 @@ pub fn from_input_part_1(input : &str ) -> Vec<RaceDataCompact> {
         .chunks(2)
         .map(|(a)|{
             let _b = (
-            a[0].replace("Time:", "").trim().split_whitespace().flat_map(|e| e.parse::<u32>()).collect_vec(),
-            a[1].replace("Distance:","").trim().split_whitespace().flat_map(|e| e.parse::<u32>()).collect_vec()
+            a[0].replace("Time:", "").trim().split_whitespace().flat_map(|e| e.parse::<usize>()).collect_vec(),
+            a[1].replace("Distance:","").trim().split_whitespace().flat_map(|e| e.parse::<usize>()).collect_vec()
+            );
+            RaceData {time: _b.0, distance: _b.1}
+        })
+        .map(|d|RaceDataCompact::from_race_data(d))
+        .collect_vec()
+        ;
+
+    debug!("{:?}",race);
+
+    race
+
+}
+pub fn from_input_part_2(input : &str ) -> Vec<RaceDataCompact> {
+    let race = input
+        .lines()
+        .collect_vec()
+        .chunks(2)
+        .map(|(a)|{
+            let _b = (
+                vec![a[0].replace("Time:", "").replace(' ', "").trim().parse::<usize>().unwrap()],
+                vec![a[1].replace("Distance:","").replace(' ', "").trim().parse::<usize>().unwrap()]
             );
             RaceData {time: _b.0, distance: _b.1}
         })
@@ -92,7 +129,7 @@ mod tests {
     use itertools::{assert_equal, Itertools};
     use tracing::debug;
     use tracing::field::debug;
-    use crate::day6::day6::from_input_part_1;
+    use crate::day6::day6::{from_input_part_1, from_input_part_2};
 
     pub fn init_logger(){
             tracing_subscriber::fmt::init()
@@ -116,7 +153,12 @@ mod tests {
         init_logger();
         let  input = include_str!("./testInput1.txt");
 
-        let res = "";
+        let res = from_input_part_2(input);
+
+        let times = res.iter().map(|e| e.calculate_record_beat_counts()).collect_vec();
+        debug!("Timings : {:#?}",times);
+        let sum_of_fist = res.first().unwrap().calculate_record_beat_counts().iter().fold(1,|a,b| a*b);
+        assert_eq!(71503,sum_of_fist);
     }
 
 }
