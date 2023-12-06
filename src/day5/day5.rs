@@ -4,6 +4,7 @@ use std::iter;
 use std::ops::{Range, RangeFrom};
 use std::slice::Iter;
 use std::sync::Arc;
+use chrono::{DateTime, Duration, Utc};
 use itertools::Itertools;
 use rangemap::RangeMap;
 use rayon::prelude::{IntoParallelIterator, IntoParallelRefIterator};
@@ -136,6 +137,8 @@ impl SeedTable {
     }
 
 
+
+
 }
 
 
@@ -169,7 +172,7 @@ fn from_input_part1(input :&str) -> Vec<SeedTable> {
         .map(|e|e.iter().flat_map( |&i|if i == "" {None} else {Some(i.replace(" map" ,""))} ).collect_vec())
         .collect_vec();
     //
-    println!("{:?}",&extract);
+
 
 
 
@@ -184,7 +187,6 @@ fn from_input_part1(input :&str) -> Vec<SeedTable> {
                     seeds = Seeds { seeds: seed };
 
                 } else if identifier.first().unwrap().contains("-to-") {
-                    println!("Jumping into TO");
                     let split = identifier.first().unwrap().split("-to-").collect_vec();
                     let mut new_mapping = MappingTypes {
                         mapping_in: split.first().unwrap().to_string(),
@@ -254,7 +256,7 @@ fn from_input_part1(input :&str) -> Vec<SeedTable> {
         s
     }).collect_vec();
 
-    info!("{:#?}",seedTable);
+    info!("{:?}",seedTable);
 
     seedTable
 }
@@ -267,19 +269,16 @@ fn from_input_part1(input :&str) -> Vec<SeedTable> {
 
 fn from_input_part2(input :&str) -> Vec<SeedTable> {
     info!("RUNNING PART 2");
-    // Read Mappings´ Seperate into blocks starting with a string, split by ":" numbers next_input_string or blank
     let binding = input
-        //Set End For Numbers as markers
+
         .replace("\n\n", "\nENDOFNUMBERS\n");
     //println!("{:?}",&binding);
     let extract = binding
-        //need it still as Identifier
+
         .lines()
         .map(|l|l.split(':').collect_vec())
         .map(|e|e.iter().flat_map( |&i|if i == "" {None} else {Some(i.replace(" map" ,""))} ).collect_vec())
         .collect_vec();
-    //
-    //println!("{:?}",&extract);
 
 
 
@@ -296,7 +295,6 @@ fn from_input_part2(input :&str) -> Vec<SeedTable> {
                     .collect_vec()
                     .chunks(2).map(|c| (c[0], c[0] + c[1]))
                     .collect_vec();
-                info!("CALC SEED VEV{:?}",seed);
                 let mut ranges = Vec::<Range<u64>>::new();
 
                 let ranges = seed.iter()
@@ -306,7 +304,6 @@ fn from_input_part2(input :&str) -> Vec<SeedTable> {
                     }).collect_vec();
                 seeds.seeds = ranges.clone();
             } else if identifier.first().unwrap().contains("-to-") {
-                //println!("Jumping into TO");
                 let split = identifier.first().unwrap().split("-to-").collect_vec();
                 let mut new_mapping = MappingTypes {
                     mapping_in: split.first().unwrap().to_string(),
@@ -350,16 +347,22 @@ fn from_input_part2(input :&str) -> Vec<SeedTable> {
         }).collect_vec()
     );
     //println!("MAP : {:?}",multimap);
-    println!("SEEDS: {:?}", seeds );
-
-    let seedTable = seeds.seeds.iter().filter_map(|e|{
-        let count = e.clone().count();
-        info!("RUNNING SEED RANGE '{:?}' , LENGTH : '{}'",&e,count);
+    info!("SEEDS: {:?}", seeds );
+    let total_seed_count = seeds.seeds.iter().fold(0,|acc,s|{acc+s.clone().count()});
+    info!("Total processing Size: {}", total_seed_count );
 
 
 
-        e.clone().into_par_iter().map(|e|{
-                debug!("processing : {}",e);
+    let seedTable : Vec<(SeedTable,(DateTime<Utc>,DateTime<Utc>))> = seeds.seeds.into_iter().filter_map(|range|{
+        let count = range.clone().count();
+
+        info!("RUNNING SEED RANGE '{:?} \t LENGTH : '{}'' ",  &range ,count,);
+
+        info!("Starting Timer for {}..{}" , &range.start,&range.end);
+
+        let start = chrono::Utc::now();
+        let res = range.clone().into_par_iter().map(|e|{
+                debug!("processing Number : {} \t,\t {} / {}",e , &range.end - e ,&count );
                 let mut s = SeedTable::new(&e);
                 let mut index = Some("seed");
                 while let Some(key) = index {
@@ -378,16 +381,28 @@ fn from_input_part2(input :&str) -> Vec<SeedTable> {
                         index= Some(&table.relates_to)
                     } else {index = None}
                 }
-                debug!("This is {:?}",s);
                 s
-            }).min_by_key(|e|e.table["location"])
+            }).min_by_key(|e|e.table["location"]);
+        let end = chrono::Utc::now();
+        let time_spend = (end-start).abs();
+        let avg = (time_spend/ range.clone().count() as i32).abs();
+        info!("Processed: {} Seeds Time Spend \t\t{:?} , avg : {:?}",range.clone().count(), time_spend.to_std().unwrap() , avg.to_std().unwrap());
+        if let Some(res) = res {
+            Some((res, (start, end)))
+        } else { None }
     })
-        .collect_vec();
+        .collect();
+    let timings = &seedTable.iter().map(|e|e.1).collect_vec();
 
-    info!("{:#?}",seedTable);
+    let time_spend = timings.iter().fold(Duration::zero(),|acc,v| { acc + (v.1-v.0).abs()}).abs();
 
-    seedTable
+    info!("Total Time Spend: {:?} for {} Seeds", time_spend.to_std().unwrap() , total_seed_count);
+
+    info!("{:?}",seedTable);
+
+    seedTable.iter().map(|e|e.0.to_owned()).collect_vec()
 }
+
 
 #[derive(Debug)]
 struct RangeSeed {
@@ -442,7 +457,6 @@ fn optimize_part_2(input : &str) {
                     }).collect_vec();
                 seeds.seeds = ranges.clone();
             } else if identifier.first().unwrap().contains("-to-") {
-                //println!("Jumping into TO");
                 let split = identifier.first().unwrap().split("-to-").collect_vec();
                 let mut new_mapping = MappingTypes {
                     mapping_in: split.first().unwrap().to_string(),
