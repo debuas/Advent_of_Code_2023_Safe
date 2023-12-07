@@ -1,13 +1,13 @@
 use rayon::iter::ParallelIterator;
-use std::collections::{BTreeMap, HashMap, HashSet};
-use std::iter;
-use std::ops::{Range, RangeFrom};
+use std::collections::{HashMap};
+
+use std::ops::{Range};
 use std::slice::Iter;
 use std::sync::Arc;
 use chrono::{DateTime, Duration, Utc};
 use itertools::Itertools;
-use rangemap::RangeMap;
-use rayon::prelude::{IntoParallelIterator, IntoParallelRefIterator};
+
+use rayon::prelude::{IntoParallelIterator};
 use tracing::{debug, info};
 
 #[derive(Debug,Clone)]
@@ -218,7 +218,7 @@ fn from_input_part1(input :&str) -> Vec<SeedTable> {
     let _ = extract.iter()
         .batching(|it| match fun_it(it) {
             None => { None }
-            Some(ex) => { fun_it(it) }
+            Some(_ex) => { fun_it(it) }
         }).collect_vec();
 
     //println!("{:?}",&seeds);
@@ -236,7 +236,7 @@ fn from_input_part1(input :&str) -> Vec<SeedTable> {
         }).collect_vec()
     );
     //println!("MAP : {:?}",multimap);
-    let seedTable = seeds.seeds.iter().map(|e|{
+    let seed_table = seeds.seeds.iter().map(|e|{
         let mut s = SeedTable::new(e);
         let mut index = Some("seed");
         while let Some(key) = index {
@@ -256,9 +256,9 @@ fn from_input_part1(input :&str) -> Vec<SeedTable> {
         s
     }).collect_vec();
 
-    info!("{:?}",seedTable);
+    info!("{:?}",seed_table);
 
-    seedTable
+    seed_table
 }
 
 
@@ -273,7 +273,7 @@ fn from_input_part2(input :&str) -> Vec<SeedTable> {
 
         .replace("\n\n", "\nENDOFNUMBERS\n");
     //println!("{:?}",&binding);
-    let extract = binding
+    let _extract = binding
 
         .lines()
         .map(|l|l.split(':').collect_vec())
@@ -285,7 +285,7 @@ fn from_input_part2(input :&str) -> Vec<SeedTable> {
 
     let mut seeds : SeedRange = SeedRange::default();
     let mut vec_mappings: Vec<MappingTypes> = vec![];
-    let mut fun_it = |it:  &'_ mut Iter<Vec<String>> | {
+    let _fun_it = |it:  &'_ mut Iter<Vec<String>> | {
         if let Some(identifier) = it.next() {
             if identifier.first().unwrap() == "seeds" {
                 let seed  = identifier.last().unwrap()
@@ -295,7 +295,7 @@ fn from_input_part2(input :&str) -> Vec<SeedTable> {
                     .collect_vec()
                     .chunks(2).map(|c| (c[0], c[0] + c[1]))
                     .collect_vec();
-                let mut ranges = Vec::<Range<u64>>::new();
+                let _ranges = Vec::<Range<u64>>::new();
 
                 let ranges = seed.iter()
                     .map(|(a,b)| {
@@ -347,7 +347,7 @@ fn from_input_part2(input :&str) -> Vec<SeedTable> {
 
 
 
-    let seedTable : Vec<(SeedTable,(DateTime<Utc>,DateTime<Utc>))> = seeds.seeds.into_iter().filter_map(|range|{
+    let seed_table: Vec<(SeedTable, (DateTime<Utc>, DateTime<Utc>))> = seeds.seeds.into_iter().filter_map(|range|{
         let count = range.clone().count();
 
         info!("RUNNING SEED RANGE '{:?} \t LENGTH : '{}'' ",  &range ,count,);
@@ -379,22 +379,22 @@ fn from_input_part2(input :&str) -> Vec<SeedTable> {
             }).min_by_key(|e|e.table["location"]);
         let end = chrono::Utc::now();
         let time_spend = (end-start).abs();
-        let avg = (time_spend.to_std()/ range.clone().count() as i32).abs();
+        let avg = (time_spend / range.clone().count() as i32).abs();
         info!("Processed: {} Seeds Time Spend \t\t{:?} , avg : {:?}",range.clone().count(), time_spend.to_std().unwrap() , avg.to_std().unwrap());
         if let Some(res) = res {
             Some((res, (start, end)))
         } else { None }
     })
         .collect();
-    let timings = &seedTable.iter().map(|e|e.1).collect_vec();
+    let timings = &seed_table.iter().map(|e|e.1).collect_vec();
 
     let time_spend = timings.iter().fold(Duration::zero(),|acc,v| { acc + (v.1-v.0).abs()}).abs();
 
     info!("Total Time Spend: {:?} for {} Seeds", time_spend.to_std().unwrap() , total_seed_count);
 
-    info!("{:?}",seedTable);
+    info!("{:?}",seed_table);
 
-    seedTable.iter().map(|e|e.0.to_owned()).collect_vec()
+    seed_table.iter().map(|e|e.0.to_owned()).collect_vec()
 }
 
 
@@ -406,7 +406,7 @@ struct RangeSeed {
 
 struct SeedMap(Vec<RangeSeed>);
 
-fn improved_range_mapper(pre_processed_lines : &str){
+fn improved_range_mapper(_pre_processed_lines : &str){
 
 }
 
@@ -417,7 +417,7 @@ fn optimize_part_2(input : &str) {
         //Set End For Numbers as markers
         .replace("\n\n", "\nENDOFNUMBERS\n");
     //println!("{:?}",&binding);
-    let extract = binding
+    let _extract = binding
         //need it still as Identifier
         .lines()
         .map(|l|l.split(':').collect_vec())
@@ -428,7 +428,7 @@ fn optimize_part_2(input : &str) {
 
     let mut seeds : SeedRange = SeedRange::default();
     let mut vec_mappings: Vec<MappingTypes> = vec![];
-    let mut fun_it = |it:  &'_ mut Iter<Vec<String>> | {
+    let _fun_it = |it:  &'_ mut Iter<Vec<String>> | {
         if let Some(identifier) = it.next() {
             if identifier.first().unwrap() == "seeds" {
                 let seed  = identifier.last().unwrap()
@@ -439,7 +439,7 @@ fn optimize_part_2(input : &str) {
                     .chunks(2).map(|c| (c[0], c[0] + c[1]))
                     .collect_vec();
                 info!("CALC SEED VEV{:?}",seed);
-                let mut ranges = Vec::<Range<u64>>::new();
+                let _ranges = Vec::<Range<u64>>::new();
 
                 let ranges = seed.iter()
                     .map(|(a,b)| {
@@ -484,7 +484,7 @@ fn optimize_part_2(input : &str) {
     );
 
     let location_map = &multimap["location"];
-    let smallest_location = location_map.mappings.iter().map(|(r,s)|s).min();
+    let _smallest_location = location_map.mappings.iter().map(|(_r,s)|s).min();
     todo!("Work on algorithm")
 
 }

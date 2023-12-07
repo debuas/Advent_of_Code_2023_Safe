@@ -6,14 +6,14 @@ use tracing::{debug, info};
 pub fn run_day_4_part_1(){
     let  input = include_str!("./input.txt");
     let rounds = from_input_part1(input);
-    let mut points = rounds.iter().map(|e|e.first().unwrap().calculate_points(e.last().unwrap())).collect_vec();
+    let points = rounds.iter().map(|e|e.first().unwrap().calculate_points(e.last().unwrap())).collect_vec();
     let res : u32 = points.iter().sum();
     info!("Result: {:?}", res);
     println!("Result: {:?}", res)
 }pub fn run_day_4_part_2(){
     let  input = include_str!("./input.txt");
-    let mut rounds = from_input_part_2(input);
-    let res = rounds.iter().fold(0,|acc,(k,e)| acc + e.amount);
+    let rounds = from_input_part_2(input);
+    let res = rounds.iter().fold(0,|acc,(_k,e)| acc + e.amount);
     info!("Result: {:?}", res);
     println!("Result: {:?}", res)
 }
@@ -33,7 +33,7 @@ impl Card {
 
     fn calculate_points(&self, other : &Card) -> u32 {
         let numbs = self.winning_numbers(other);
-        numbs.iter().fold((1, 0),|mut acc: (u32, u32), e|{
+        numbs.iter().fold((1, 0),|acc: (u32, u32), _e|{
             if acc.0 == 1 {(acc.0+1 , acc.1+1)}
             else { (acc.0+1 , acc.1*2) }
 
@@ -91,7 +91,7 @@ fn from_input_part_2<'a>(input : &str) -> Vec<(usize, WinsAndScratches)> {
     }).collect_vec();
 
     //Each with 1 Instance (card|cards with scratches (amount) | wins)
-    let mut winning_numbers = rounds.iter().map(|e|e.first().unwrap().winning_numbers(e.last().unwrap()).len())
+    let winning_numbers = rounds.iter().map(|e|e.first().unwrap().winning_numbers(e.last().unwrap()).len())
         .map(|e| WinsAndScratches{ wining_cards: e, amount: 1 })
         .enumerate()
         ;
@@ -101,7 +101,7 @@ fn from_input_part_2<'a>(input : &str) -> Vec<(usize, WinsAndScratches)> {
     let tracking_cards : RefCell<HashMap<usize,WinsAndScratches>> = RefCell::new(HashMap::from_iter(winning_numbers.clone()))
         ;
 
-    winning_numbers.for_each(|(index,element)| {
+    winning_numbers.for_each(|(index,_element)| {
         let get_element = &tracking_cards.borrow()[&index].clone();
         let range = index+1..=(index+get_element.wining_cards);
         debug!("Processing: {}",index);
@@ -115,17 +115,17 @@ fn from_input_part_2<'a>(input : &str) -> Vec<(usize, WinsAndScratches)> {
         ;
     });
 
-    let mut tmp = tracking_cards.borrow();
+    let tmp = tracking_cards.borrow();
     let mut res = tmp.iter().map(|(k,v)|(k.clone(), v.clone())).collect_vec();
     res.sort_by(|a,b| { a.0.cmp(&b.0) });
     res
 }
 
-
+#[cfg(test)]
 mod tests {
-    use itertools::{assert_equal, Itertools};
-    use tracing::{debug, info};
-    use crate::day4::day4::{Card, from_input_part1, from_input_part_2};
+    use itertools::Itertools;
+    use crate::day4::day4::from_input_part1;
+    use crate::day4::day4::from_input_part_2;
 
     #[test]
     fn test_part_1(){
@@ -160,7 +160,7 @@ mod tests {
     fn test_part_2(){
         let input = include_str!("./testInput1.txt");
         let mut rounds = from_input_part_2(input);
-        let sum = rounds.iter().fold(0,|acc,(k,e)| acc + e.amount);
+        let sum = rounds.iter().fold(0,|acc,(_k,e)| acc + e.amount);
         println!("{:?}",rounds);
         println!("{:?}",sum);
         assert_eq!(1,rounds.pop().unwrap().1.amount);

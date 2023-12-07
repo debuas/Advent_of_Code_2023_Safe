@@ -1,7 +1,7 @@
 use rayon::iter::ParallelIterator;
 use itertools::Itertools;
 use rayon::prelude::IntoParallelIterator;
-use tracing::{debug, info, instrument};
+use tracing::{debug, info};
 
 #[derive(Debug,Clone)]
 struct RaceData {
@@ -44,7 +44,7 @@ impl Race {
         let _min_speed_needed_per_second = self.distance/self.time;
         let charge_time = 0..self.time;
         charge_time.into_par_iter().filter(|x| {
-            let remaining = (self.time - x);
+            let remaining = self.time - x;
             remaining*x>self.distance
         }).count()
     }
@@ -80,12 +80,12 @@ pub fn run_day_6_part_2() {
 
 
 
-pub fn from_input_part_1(input : &str ) -> Vec<RaceDataCompact> {
+fn from_input_part_1(input : &str ) -> Vec<RaceDataCompact> {
     let race = input
         .lines()
         .collect_vec()
         .chunks(2)
-        .map(|(a)|{
+        .map(|a|{
             let _b = (
             a[0].replace("Time:", "").trim().split_whitespace().flat_map(|e| e.parse::<usize>()).collect_vec(),
             a[1].replace("Distance:","").trim().split_whitespace().flat_map(|e| e.parse::<usize>()).collect_vec()
@@ -101,12 +101,12 @@ pub fn from_input_part_1(input : &str ) -> Vec<RaceDataCompact> {
     race
 
 }
-pub fn from_input_part_2(input : &str ) -> Vec<RaceDataCompact> {
+fn from_input_part_2(input : &str ) -> Vec<RaceDataCompact> {
     let race = input
         .lines()
         .collect_vec()
         .chunks(2)
-        .map(|(a)|{
+        .map(|a|{
             let _b = (
                 vec![a[0].replace("Time:", "").replace(' ', "").trim().parse::<usize>().unwrap()],
                 vec![a[1].replace("Distance:","").replace(' ', "").trim().parse::<usize>().unwrap()]
@@ -125,10 +125,10 @@ pub fn from_input_part_2(input : &str ) -> Vec<RaceDataCompact> {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Once;
-    use itertools::{assert_equal, Itertools};
+    
+    use itertools::{Itertools};
     use tracing::debug;
-    use tracing::field::debug;
+    
     use crate::day6::day6::{from_input_part_1, from_input_part_2};
 
     pub fn init_logger(){

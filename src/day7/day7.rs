@@ -1,14 +1,15 @@
 use std::any::Any;
-use std::cmp::{max, min, Ordering};
+
+use std::cmp::{Ordering};
 use std::collections::HashMap;
-use std::io::ErrorKind::Other;
-use std::str::Lines;
-use std::sync::mpsc::TrySendError::Full;
-use rayon::iter::ParallelIterator;
-use itertools::{cloned, Combinations, Itertools, unfold};
-use rayon::prelude::IntoParallelIterator;
-use tracing::{debug, info, instrument};
-use tracing::field::debug;
+
+
+
+
+use itertools::{Itertools};
+
+use tracing::{debug, info};
+
 use crate::day7::day7::Combination::{FiveOfAKind, FourOfAKind, FullHouse, HighCard, OnePair, ThreeOfAKind, TwoPairs};
 
 #[derive(Debug,Clone,Hash,Eq, PartialEq,Ord, PartialOrd)]
@@ -29,7 +30,6 @@ Two,
 }
 
 impl Cards {
-
     pub fn value(&self) -> usize {
         match self {
             Cards::A => {8192}
@@ -47,7 +47,6 @@ impl Cards {
             Cards::Two => {2}
         }
     }
-
     pub fn value_joker(&self) -> usize {
         match self {
             Cards::A => {8192}
@@ -67,6 +66,28 @@ impl Cards {
     }
 
 }
+
+impl TryFrom<char> for Cards {
+    type Error = ();
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            'K' => { Ok(Cards::K) }
+            'A' => { Ok(Cards::A) }
+            'Q' => { Ok(Cards::Q) }
+            'J' => { Ok(Cards::J) }
+            'T' => { Ok(Cards::T) }
+            '9' => { Ok(Cards::Nine) }
+            '8' => { Ok(Cards::Eight) }
+            '7' => { Ok(Cards::Seven) }
+            '6' => { Ok(Cards::Six) }
+            '5' => { Ok(Cards::Five) }
+            '4' => { Ok(Cards::Four) }
+            '3' => { Ok(Cards::Three) }
+            '2' => { Ok(Cards::Two) }
+            _ => Err(())
+        }
+    }
+}
 impl Cards {
 
     pub fn slice_5(v :&[Self]) -> Option<[Cards;5]> {
@@ -78,7 +99,7 @@ impl Cards {
 
 
 
-#[derive(Debug,Clone,Ord,Eq)]
+#[derive(Debug,Clone,Eq,Ord)]
 enum Combination {
     FiveOfAKind([Cards;5]),
     FourOfAKind([Cards;5]),
@@ -89,11 +110,8 @@ enum Combination {
     HighCard([Cards;5])
 }
 
-struct CardCombinatrion{
-    combination : Combination
-}
 
-pub fn compare_card_slice(left : &[Cards;5] ,other : &[Cards;5]) -> Option<Ordering>{
+fn compare_card_slice(left : &[Cards;5] ,other : &[Cards;5]) -> Option<Ordering>{
     debug!("l:{:?}, r:{:?}",left,other);
     let res = left.iter()
         .zip(other)
@@ -122,7 +140,7 @@ pub fn compare_card_slice(left : &[Cards;5] ,other : &[Cards;5]) -> Option<Order
 
 
 
-pub fn compare_card_slice_joker(left : &[Cards;5] ,other : &[Cards;5]) -> Option<Ordering>{
+fn compare_card_slice_joker(left : &[Cards;5] ,other : &[Cards;5]) -> Option<Ordering>{
     debug!("l:{:?}, r:{:?}",left,other);
     let res = left.iter()
         .zip(other)
@@ -153,24 +171,23 @@ pub fn compare_card_slice_joker(left : &[Cards;5] ,other : &[Cards;5]) -> Option
 impl Combination {
 
     fn from_cards(cards : &[Cards]) -> Combination{
-        let tmp = cards.clone().iter()
+        let tmp = cards.iter()
             .counts();
-        let cardsMap : HashMap<&usize,Cards> = tmp
+        let card_map: HashMap<&usize,Cards> = tmp
             .iter().map(|(&k,v)| {
             let x =
             (v, k.clone());
             x
         }).collect()
             ;
-        let tmp = cards.clone().iter().counts();
-        let doubles = tmp.iter().filter(|(&a,&b)| b==2).clone().collect_vec();
-        let max_single = cards.iter().max_by_key(|c|c.value()).unwrap();
-        let c = if let Some(a) = cardsMap.get(&5){
+        let tmp = cards.iter().counts();
+        let doubles = tmp.iter().filter(|(&_a,&b)| b==2).clone().collect_vec();
+        let c = if let Some(_a) = card_map.get(&5){
             FiveOfAKind(Cards::slice_5(cards).unwrap())
-        }else  if let Some(a) = cardsMap.get(&4) {
+        }else  if let Some(_a) = card_map.get(&4) {
             FourOfAKind(Cards::slice_5(cards).unwrap())
-        }else  if let(Some(a),Some(b)) = (cardsMap.get(&3) ,cardsMap.get(&2)) {FullHouse(Cards::slice_5(cards).unwrap())}
-        else  if let Some(a) = cardsMap.get(&3) { ThreeOfAKind(Cards::slice_5(cards).unwrap()) }
+        }else  if let(Some(_a),Some(_b)) = (card_map.get(&3), card_map.get(&2)) {FullHouse(Cards::slice_5(cards).unwrap())}
+        else  if let Some(_a) = card_map.get(&3) { ThreeOfAKind(Cards::slice_5(cards).unwrap()) }
             else if doubles.len()== 2 {TwoPairs(Cards::slice_5(cards).unwrap())}
             else if doubles.len()==1 {OnePair(Cards::slice_5(cards).unwrap())}
         else { HighCard(Cards::slice_5(cards).unwrap()) };
@@ -228,29 +245,6 @@ impl Combination {
 
 
 
-    fn compare_full_house(&self,other : &Self) -> Option<Ordering>{
-        if let FullHouse(a)= self {
-            if let FullHouse(b)= other {
-                compare_card_slice(a,b)
-            } else {None}
-        } else { None }
-    }
-    fn compare_double(&self,other : &Self) -> Option<Ordering>{
-        if let TwoPairs(a)= self {
-            if let TwoPairs(b)= other {
-                compare_card_slice(a,b)
-            } else {None}
-        } else { None }
-    }
-
-    fn partial_cmp_joker_ordering(&self, other: &Self) -> Option<Ordering> {
-        if self.self_to_number() == other.self_to_number() {
-            compare_card_slice_joker(self.get_inner(), other.get_inner())
-        }else if self.self_to_number() > other.self_to_number() {
-            Some(Ordering::Greater)
-        } else { Some(Ordering::Less) }
-    }
-
 
 
 
@@ -265,7 +259,7 @@ impl PartialEq for Combination {
     }
 }
 
-#[derive(Ord,Eq,Debug)]
+#[derive(Eq,Debug,Ord)]
 struct JokerCombination(Combination);
 
 impl PartialOrd for JokerCombination {
@@ -336,29 +330,14 @@ pub fn from_input_part_1(input : &str ) -> Vec<Round> {
     let mut res  = input
         .lines()
         .map(|l|{
-            let Round = l.split_whitespace()
+            let round = l.split_whitespace()
                 .collect_vec();
-            let hand = Round.first()
+            let hand = round.first()
                 .unwrap()
                 .chars()
-                .flat_map(|c|
-                match c {
-                    'K' => { Some(Cards::K) }
-                    'A' => { Some(Cards::A) }
-                    'Q' => { Some(Cards::Q) }
-                    'J' => { Some(Cards::J) }
-                    'T' => { Some(Cards::T) }
-                    '9' => { Some(Cards::Nine) }
-                    '8' => { Some(Cards::Eight) }
-                    '7' => { Some(Cards::Seven) }
-                    '6' => { Some(Cards::Six) }
-                    '5' => { Some(Cards::Five) }
-                    '4' => { Some(Cards::Four) }
-                    '3' => { Some(Cards::Three) }
-                    '2' => { Some(Cards::Two) }
-                    _ => None
-                }).collect_vec();
-            let bid = Round.last().unwrap().parse::<u64>().unwrap();
+                .flat_map(|c|Cards::try_from(c).ok()).collect_vec();
+
+            let bid = round.last().unwrap().parse::<u64>().unwrap();
             Round{hand,bid}
         })
         .collect_vec()
@@ -375,29 +354,14 @@ pub fn from_input_part_2(input : &str ) -> Vec<Round> {
     let mut res  = input
         .lines()
         .map(|l|{
-            let Round = l.split_whitespace()
+            let round = l.split_whitespace()
                 .collect_vec();
-            let hand = Round.first()
+            let hand = round.first()
                 .unwrap()
                 .chars()
                 .flat_map(|c|
-                    match c {
-                        'K' => { Some(Cards::K) }
-                        'A' => { Some(Cards::A) }
-                        'Q' => { Some(Cards::Q) }
-                        'J' => { Some(Cards::J) }
-                        'T' => { Some(Cards::T) }
-                        '9' => { Some(Cards::Nine) }
-                        '8' => { Some(Cards::Eight) }
-                        '7' => { Some(Cards::Seven) }
-                        '6' => { Some(Cards::Six) }
-                        '5' => { Some(Cards::Five) }
-                        '4' => { Some(Cards::Four) }
-                        '3' => { Some(Cards::Three) }
-                        '2' => { Some(Cards::Two) }
-                        _ => None
-                    }).collect_vec();
-            let bid = Round.last().unwrap().parse::<u64>().unwrap();
+                    Cards::try_from(c).ok()).collect_vec();
+            let bid = round.last().unwrap().parse::<u64>().unwrap();
             Round{hand,bid}
         })
         .collect_vec()
@@ -414,8 +378,8 @@ pub fn from_input_part_2(input : &str ) -> Vec<Round> {
 
 #[cfg(test)]
 mod tests {
-    use tracing::{debug, info};
-    use tracing::field::debug;
+    use tracing::{info};
+    
     use crate::day7::day7::{Combination, from_input_part_1, from_input_part_2};
 
     pub fn init_logger(){
@@ -423,7 +387,7 @@ mod tests {
     }
 
     #[test]
-    fn test_day_3_part_1(){
+    fn test_day_7_part_1(){
         init_logger();
         let  input = include_str!("./testInput1.txt");
         let secondary = include_str!("./testInput2.txt");
@@ -437,7 +401,7 @@ mod tests {
 
     }
     #[test]
-    fn test_day_3_part_2(){
+    fn test_day_7_part_2(){
         init_logger();
         let  input = include_str!("./testInput1.txt");
         let secondary = include_str!("./testInput2.txt");
