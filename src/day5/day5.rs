@@ -332,12 +332,6 @@ fn from_input_part2(input :&str) -> Vec<SeedTable> {
     };
 
 
-    let _ = extract.iter()
-        .batching(|it| match fun_it(it) {
-            None => { None }
-            Some(ex) => { fun_it(it) }
-        }).collect_vec();
-
     let multimap : HashMap<String,TypeMapArc>= HashMap::from_iter(
         vec_mappings.iter().map(|types|{
             (
@@ -385,7 +379,7 @@ fn from_input_part2(input :&str) -> Vec<SeedTable> {
             }).min_by_key(|e|e.table["location"]);
         let end = chrono::Utc::now();
         let time_spend = (end-start).abs();
-        let avg = (time_spend/ range.clone().count() as i32).abs();
+        let avg = (time_spend.to_std()/ range.clone().count() as i32).abs();
         info!("Processed: {} Seeds Time Spend \t\t{:?} , avg : {:?}",range.clone().count(), time_spend.to_std().unwrap() , avg.to_std().unwrap());
         if let Some(res) = res {
             Some((res, (start, end)))
@@ -431,9 +425,6 @@ fn optimize_part_2(input : &str) {
         .collect_vec();
     //
     //println!("{:?}",&extract);
-
-
-
 
     let mut seeds : SeedRange = SeedRange::default();
     let mut vec_mappings: Vec<MappingTypes> = vec![];
@@ -481,8 +472,21 @@ fn optimize_part_2(input : &str) {
             }
             Some(0)
         } else { None }
-
     };
+
+    let multimap : HashMap<String,TypeMapArc>= HashMap::from_iter(
+        vec_mappings.iter().map(|types|{
+            (
+                types.mapping_in.clone(),
+                TypeMapArc::from_mapping_types(types)
+            )
+        }).collect_vec()
+    );
+
+    let location_map = &multimap["location"];
+    let smallest_location = location_map.mappings.iter().map(|(r,s)|s).min();
+    todo!("Work on algorithm")
+
 }
 
 #[cfg(test)]
