@@ -1,14 +1,12 @@
 use std::borrow::Borrow;
 use std::any::Any;
-use std::cell::{Ref, RefCell, RefMut};
+use std::collections::{BTreeMap, HashMap};
 
-use std::cmp::{Ordering};
-use std::collections::HashMap;
-use std::rc::Rc;
 use itertools::{Itertools, unfold};
-use itertools::FoldWhile::Continue;
 
-use tracing::{debug, info};
+
+use tracing::{debug, info, warn};
+use tracing::field::debug;
 
 
 enum Command {
@@ -26,7 +24,7 @@ impl TryFrom<char> for Command{
         }
     }
 }
-#[derive(Default,Clone,Debug)]
+#[derive(Default,Clone,Debug,Eq, PartialEq)]
 struct Node {
     pub key : String,
     left : String,
@@ -48,9 +46,9 @@ impl Node {
         ;
 
         let mut node = Node::default();
-        node.key = String::from(kv.0);
-        node.left = String::from(lr.0);
-        node.right = String::from(lr.1);
+        node.key = String::from(kv.0.replace(" ",""));
+        node.left = String::from(lr.0.replace(" ",""));
+        node.right = String::from(lr.1.replace(" ",""));
         node
     }
 
@@ -70,17 +68,14 @@ impl Node {
 
 pub fn run_day_8_part_1() {
     let  input = include_str!("./input.txt");
-    let res = ();
-    info!("Result :  {:?}" , res);
-    println!("Result :  {:?}" , res)
+    let res = from_input_part_1(input);
+    info!("Result Part 1 :  {:?}" , res);
+    println!("Result Part 2:  {:?}" , res)
 }
 
 pub fn run_day_8_part_2() {
     let  input = include_str!("./input.txt");
-    let rounds = from_input_part_2(input) ;
-
-    let res = ();
-
+    let res = from_input_part_2(input);
     info!("Result Part 2 :  {:?}" , res);
     println!("Result Part 2 :  {:?}" , res)
 }
@@ -99,46 +94,103 @@ pub fn from_input_part_1(input : &str ) -> usize {
     let mut nodes = lines.iter()
         .map(|&l| Node::from_line(l))
         .collect_vec();
-    let starting_node = &nodes[0].key.clone();
-    let mut nodes_map: HashMap<&str, &Node> = HashMap::from_iter(nodes.iter().map(|n|(n.key.as_str(), n)));
 
-
-    let res = unfold((0usize, starting_node.clone()),  |(count, node)| {
-        let n = nodes_map.get();
-        debug!("Unfold Tuple : {:?} | n = {:?}" , (count,&node) , n );
-        if n.key == "ZZZ" {
-            debug!("{} == ZZZ", n.key);
+    let nodes_map = BTreeMap::from_iter(nodes.iter().map(|n| { (n.key.clone(), n) }));
+    let starting_node = &nodes_map["AAA"].key.clone();
+    warn!("Test Warning");
+    info!("Node counts :{}" , nodes_map.len());
+    let mut res = unfold((0usize, starting_node.clone(),0usize),  |(count, node,cycle_count)| {
+        let ne = nodes_map.get(node).unwrap();
+        println!("Unfold Tuple : {:?} | n = {:?}" , (&count,&node) , ne );
+        if ne.key.as_str() == starting_node.as_str() {
+            *cycle_count += 1;
+            warn!("CICLE DETECTED : {} , Key1: {} Key2: {}" , *cycle_count,ne.key,&starting_node);
+        }
+        if ne.key == "ZZZ" {
+            debug!("{} == ZZZ", ne.key);
             None
+        } else {
+            debug!("{} != ZZZ", ne.key);
+            let res = (*count + 1usize, ne.get_node_from_command(&commands[*count % commands.len() ]));
+            *count = res.0;
+            *node = res.1.to_string();
 
-        } else
-        {
-            debug!("{} != ZZZ", n.key);
-            Some((*count + 1, n.get_node_from_command(&commands[*count % commands.len() ])))
-
+            Some(res)
         }
     });
 
 
-    res.take(5).last().unwrap().0
-
-
+    let x  = res.last().unwrap();
+    debug!("{:?}",x);
+    x.0
 }
+
+fn calculate_min_end_amount_for_node<'a>(starting_node: &'a str, commands: &Vec<Command>, map : &BTreeMap<String,&Node>,) -> (usize, String) {
+    let mut res = unfold((0usize, starting_node.clone().to_string(),0usize),  |(count, node,cycle_count)| {
+        let ne = map.get(node).unwrap();
+        println!("Unfold Tuple : {:?} | n = {:?}", (&count, &node), ne);
+        if ne.key.as_str() == starting_node {
+            *cycle_count += 1;
+            warn!("CICLE DETECTED : {} , Key1: {} Key2: {}" , *cycle_count,ne.key,&starting_node);
+        }
+        if ne.key.ends_with('Z'){
+            debug!("{} ends with Z", ne.key);
+            None
+        } else {
+            debug!("{} does not end with Z", ne.key);
+            let res = (*count + 1usize, ne.get_node_from_command(&commands[*count % commands.len()]).to_string());
+            *count = res.0;
+            *node = res.1.to_string();
+
+            Some(res)
+        }
+    });
+    res.last().unwrap()
+}
+
+
 pub fn from_input_part_2(input : &str ) -> usize {
-    let res = ();
-    debug!("{:?}",res);
-    todo!("PART 2")
+    let mut lines =
+        input
+            .lines()
+            .collect_vec();
+    lines.reverse();
+    let commands = lines.pop().unwrap().chars().flat_map(|c| { Command::try_from(c).ok() }).collect_vec();
+    lines.pop();
+    lines.reverse();
+    let mut nodes = lines.iter()
+        .map(|&l| Node::from_line(l))
+        .collect_vec();
+
+    let nodes_map = BTreeMap::from_iter(nodes.iter().map(|n| { (n.key.clone(), n) }));
+    let starting_nodes = &nodes_map.iter().filter(|(k,&n)|n.key.ends_with('A')).map(|(k,n)|n.key.as_str()).collect_vec();
+    warn!("Test Warning");
+    info!("Node counts :{}" , nodes_map.len());
+    //result count, nodes
+
+    let kgv = starting_nodes.iter()
+        .map(|&n|calculate_min_end_amount_for_node(n,&commands,&nodes_map))
+        .map(|(c,n)| {
+            info!("")
+            c
+        })
+        .map(|c|c/commands.len())
+        .product::<usize>();
+
+    kgv * commands.len()
+
 }
 
 #[cfg(test)]
 mod tests {
     use std::sync::Once;
     use tracing::{info};
-    use crate::day8::day8::from_input_part_1;
+    use crate::day8::day8::{from_input_part_1, from_input_part_2};
 
-    const INIT : Once = Once::new();
+    static INIT : Once = Once::new();
 
     pub fn init_logger(){
-            INIT.call_once(||tracing_subscriber::fmt::init())
+            INIT.call_once(tracing_subscriber::fmt::init);
     }
 
     #[test]
@@ -154,9 +206,10 @@ mod tests {
     #[test]
     fn test_day_8_part_2(){
         init_logger();
-        let  input = include_str!("./testInput1.txt");
-        let secondary = include_str!("./testInput2.txt");
+        let  input = include_str!("./testInput2.txt");
+        let res = from_input_part_2(input);
 
+        info!("Manual Optimized for problem")
 
 
     }
