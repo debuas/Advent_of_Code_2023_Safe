@@ -378,12 +378,15 @@ pub fn from_input_part_2(input : &str ) -> Vec<Round> {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Once;
     use tracing::{info};
     
     use crate::day7::day7::{Combination, from_input_part_1, from_input_part_2};
 
+    const INIT : Once = Once::new();
+
     pub fn init_logger(){
-            tracing_subscriber::fmt::init()
+        INIT.call_once(||tracing_subscriber::fmt::init())
     }
 
     #[test]
