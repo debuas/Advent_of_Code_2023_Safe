@@ -1,3 +1,4 @@
+use crate::day10::day10::{run_day_10_part_1, run_day_10_part_2};
 use crate::day1::part1::run_day1_part_1;
 
 
@@ -44,6 +45,8 @@ fn main() {
     run_day_8_part_1();
     run_day_8_part_2();
 */
-    run_day_9_part_1();
-    run_day_9_part_2();
+    //run_day_9_part_1();
+    //run_day_9_part_2();
+    //run_day_10_part_1();
+    run_day_10_part_2();
 }
