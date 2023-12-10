@@ -171,7 +171,6 @@ pub fn from_input_part_2(input : &str ) -> usize {
     let kgv = starting_nodes.iter()
         .map(|&n|calculate_min_end_amount_for_node(n,&commands,&nodes_map))
         .map(|(c,n)| {
-            info!("")
             c
         })
         .map(|c|c/commands.len())
