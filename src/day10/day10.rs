@@ -540,35 +540,50 @@ impl PipeMap {
     }
 
     pub fn transform_all_to_filled(&mut self){
+
+        #[derive(PartialEq)]
+enum State {OUT, IN}
+
+        impl State {
+            fn toggle(&mut self) {
+                *self = match self {
+                    State::OUT => {State::IN}
+                    State::IN => {State::OUT}
+                };
+            }
+        }
+
+        let mut state = State::OUT;
         self.0.iter_mut()
             .for_each(|e| {
-
-                e.iter_mut().rev().fold(0, |crossings, e| {
+                state = State::OUT;
+                e.iter_mut().fold(0, |crossings, e| {
                     match e.value {
                         Start => {
-                            crossings + 1
+                            //state.toggle()
                         }
                         Vertical => {
-                            crossings + 1
+                            state.toggle()
                         }
-                        Horizontal => { crossings }
-                        NorthEast => { crossings  }
-                        NorthWest => { crossings  }
-                        SouthWest => { crossings + 1 }
-                        SouthEast => { crossings + 1  }
+                        Horizontal => {  }
+                        NorthEast => {   }
+                        NorthWest => {   }
+                        SouthWest => { state.toggle() }
+                        SouthEast => { state.toggle()  }
                         Ground => {
-                            if crossings % 2 == 0 {
-                                e.value = FilledGround;
+                            if state == State::OUT {
+                                e.value = FilledGround
                             }
-                            crossings
+
                         }
                         FilledGround => {
-                            if crossings % 2 == 1 {
+                            if state == State::IN {
                                 //e.value = Ground;
                             }
-                            crossings
+
                         }
                     }
+                    crossings
                 });
             })
     }
@@ -706,10 +721,17 @@ pub fn from_input_part_2(input : &str ) -> usize {
     println!("Draw of Map , After Transform");
     pipe_map.0.iter().for_each(|e| {
         let e = e.iter().map(|e|match e.value {
+
             Ground => {'I'}
             FilledGround => {'.'}
-            _ => {'X'}
-        }).fold(String::new(),|acc, c|format!("{}{}",acc,c));
+            Start => {'┼'}
+            Vertical => {'│'}
+            Horizontal => {'─'}
+            NorthEast => {'└'}
+            NorthWest => {'┘'}
+            SouthWest => {'┐'}
+            SouthEast => {'┌'}
+        }).fold(String::new(), |acc, c|format!("{}{}", acc, c));
         println!("{:?}", e)
     });
     //pipe_map.0.iter().for_each(|e|println!("{:?}",e));
