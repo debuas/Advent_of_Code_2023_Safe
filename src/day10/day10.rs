@@ -27,6 +27,8 @@ enum Pipes {
     Ground,
     FilledGround,
 }
+
+
 impl From<char> for Pipes{
     fn from(value: char) -> Self {
         match value {
@@ -66,7 +68,7 @@ enum DirectionWithBLockTypes {
     EAST(BlockTypes,BlockTypes,BlockTypes),
     WEST(BlockTypes,BlockTypes,BlockTypes)
 }
-#[derive(Ord, PartialOrd, Eq, PartialEq,Copy, Clone)]
+#[derive(Ord, PartialOrd, Eq, PartialEq,Copy, Clone,Debug)]
 
 enum Direction {
     NORTH,
@@ -448,12 +450,12 @@ impl PipeMap {
 
                     new_to_check.extend_from_slice(&self
                         .get_all_valid_connections_prom_point(e)
-                        .iter()
-                        .filter(|&e| {
+                        .iter().copied()
+                        .filter(|&(d,e)| {
                             debug!("Before pre filter : {:?} , contains? = {} ",e, !checked_nodes.contains_key(&e.coordinate_into_tuple()));
                             !checked_nodes.contains_key(&e.coordinate_into_tuple())
-                        }
-                        ).copied()
+                        })
+                        .map(|(d,e)|e)
                         .collect_vec()
                     )
                 });
@@ -473,10 +475,10 @@ impl PipeMap {
         checked_nodes
     }
 
-    pub fn get_all_valid_connections_prom_point(&self, position: &AbstractPosition<Pipes>) -> Vec<&AbstractPosition<Pipes>> {
+    pub fn get_all_valid_connections_prom_point(&self, position: &AbstractPosition<Pipes>) -> Vec<(Direction, &AbstractPosition<Pipes>)> {
         let connectionpoints = position.value.connects_to();
         let position_coordinate = position.coordinate_into_tuple();
-        let mut valid_positions: Vec<&AbstractPosition<Pipes>> = Vec::new();
+        let mut valid_positions: Vec<(Direction,&AbstractPosition<Pipes>)> = Vec::new();
         debug!("Valid positions for {:?} are {:#?}" , position,connectionpoints);
 
         if let Some(north) = connectionpoints.0 {
@@ -484,7 +486,7 @@ impl PipeMap {
             if let Some(pos) = pos_north {
                 debug!("Connection North = {:?} ; Valid Types {:?}" , pos , north);
                 if north.contains(&pos.value) {
-                    valid_positions.push(pos)
+                    valid_positions.push((Direction::NORTH,pos))
                 }
             }
         };
@@ -493,7 +495,7 @@ impl PipeMap {
             if let Some(pos) = pos_south{
                 debug!("Connection South = {:?} ; Valid Types {:?}" , pos , south);
                 if south.contains(&pos.value) {
-                    valid_positions.push(pos)
+                    valid_positions.push((Direction::SOUTH,pos))
                 }
             }
         };
@@ -502,7 +504,7 @@ impl PipeMap {
             if let Some(pos) = pos_east{
                 debug!("Connection East = {:?} ; Valid Types {:?}" , pos , east);
                 if east.contains(&pos.value) {
-                    valid_positions.push(pos)
+                    valid_positions.push((Direction::EAST,pos))
                 }
             }
         };
@@ -511,7 +513,7 @@ impl PipeMap {
             if let Some(pos) = pos_west{
                 debug!("Connection West = {:?} ; Valid Types {:?}" , pos , west);
                 if west.contains(&pos.value) {
-                    valid_positions.push(pos)
+                    valid_positions.push((Direction::WEST,pos))
                 }
             }
         };
@@ -536,6 +538,46 @@ impl PipeMap {
         self.0.iter_mut().for_each(|e|{e.iter_mut().for_each(|e|{e.value = Ground})});
         //Replace Pipes again
         all_needed_pipes.iter().for_each(|e|self.set_pos(e.clone()));
+        //Change Start Type to Horizontal / Corner / Vertical
+        let mut starting_pos = self.find_starting_position().unwrap().clone();
+        let conntecters =
+            starting_pos.value.connects_to();
+        let neighbours = self.get_all_valid_connections_prom_point(&starting_pos);
+        let valid_connections = neighbours.iter()
+            .filter(|(d,e)|
+                match d {
+                    Direction::NORTH => {
+                        conntecters.clone().0.unwrap().contains(&e.value)
+                    }
+                    Direction::SOUTH => {
+                        conntecters.clone().1.unwrap().contains(&e.value)
+                    }
+                    Direction::EAST => {
+                        conntecters.clone().2.unwrap().contains(&e.value)
+                    }
+                    Direction::WEST => {
+                        conntecters.clone().3.unwrap().contains(&e.value)
+                    }
+
+            })
+            .map(|&(d,e)|d)
+            .collect_vec();
+        let new_type = if valid_connections.contains(&Direction::NORTH) && valid_connections.contains(&Direction::SOUTH) { Vertical }
+        else if valid_connections.contains(&Direction::NORTH) && valid_connections.contains(&Direction::WEST) { NorthWest }
+        else if valid_connections.contains(&Direction::NORTH) && valid_connections.contains(&Direction::EAST) { NorthEast }
+        else if valid_connections.contains(&Direction::WEST) && valid_connections.contains(&Direction::SOUTH) { SouthWest }
+        else if valid_connections.contains(&Direction::EAST) && valid_connections.contains(&Direction::SOUTH) { SouthEast }
+        else {Horizontal};
+
+        starting_pos.value = new_type;
+
+        self.set_pos(starting_pos)
+
+
+
+
+
+
         // Now its usable for calculation
     }
 
