@@ -8,10 +8,8 @@ use itertools::{Itertools, unfold};
 
 
 use tracing::{debug, info, instrument};
-use tracing::field::debug;
-use crate::day10::day10::BlockTypes::{Dry, Filled, Pipe};
-use crate::day10::day10::Corner::NW;
-use crate::day10::day10::DirectionWithBLockTypes::{EAST, NORTH, SOUTH, WEST};
+
+
 use crate::day10::day10::Pipes::{FilledGround, Ground, Horizontal, NorthEast, NorthWest, SouthEast, SouthWest, Start, Vertical};
 
 #[derive(Debug,Ord, PartialOrd, Eq, PartialEq)]
@@ -44,29 +42,12 @@ impl From<char> for Pipes{
         }
     }
 }
-#[derive(Ord, PartialOrd, Eq, PartialEq,Copy, Clone,Debug)]
-enum BlockTypes {
-    Filled,
-    Pipe,
-    Dry
-}
-#[derive(Ord, PartialOrd, Eq, PartialEq, Clone,Debug)]
-struct Block {
-    block : [[BlockTypes;3];3],
-    identifier : Pipes
-}
+
 enum Corner {
     NW,
     NE,
     SW,
     SE
-}
-#[derive(Ord, PartialOrd, Eq, PartialEq,Copy, Clone)]
-enum DirectionWithBLockTypes {
-    NORTH(BlockTypes,BlockTypes,BlockTypes),
-    SOUTH(BlockTypes,BlockTypes,BlockTypes),
-    EAST(BlockTypes,BlockTypes,BlockTypes),
-    WEST(BlockTypes,BlockTypes,BlockTypes)
 }
 #[derive(Ord, PartialOrd, Eq, PartialEq,Copy, Clone,Debug)]
 
@@ -75,210 +56,6 @@ enum Direction {
     SOUTH,
     EAST,
     WEST
-}
-
-
-
-impl From<Pipes> for Block {
-    fn from(value: Pipes) -> Self {
-        let block =
-        match value {
-            Start => {[[Dry,Pipe,Dry],[Pipe,Pipe,Pipe],[Dry,Pipe,Dry]]}
-            Vertical => {[[Dry,Pipe,Dry],[Dry,Pipe,Dry],[Dry,Pipe,Dry]]}
-            Horizontal => {[[Dry,Dry,Dry],[Pipe,Pipe,Pipe],[Dry,Dry,Dry]]}
-            NorthEast => {[[Dry,Pipe,Dry],[Dry,Pipe,Pipe],[Dry,Dry,Dry]]}
-            NorthWest => {[[Dry,Pipe,Dry],[Pipe,Pipe,Dry],[Dry,Dry,Dry]]}
-            SouthWest => {[[Dry,Dry,Dry],[Pipe,Pipe,Dry],[Dry,Pipe,Dry]]}
-            SouthEast => {[[Dry,Dry,Dry],[Dry,Pipe,Pipe],[Dry,Pipe,Dry]]}
-            Pipes::Ground => {[[Dry,Dry,Dry],[Dry,Dry,Dry],[Dry,Dry,Dry]]}
-            Pipes::FilledGround => {[[Filled,Filled,Filled],[Filled,Filled,Filled],[Filled,Filled,Filled]]}
-        };
-        Self{ block, identifier: value }
-    }
-}
-
-impl From<Block> for Pipes {
-    fn from(value: Block) -> Self {
-        match value.identifier {
-            Ground => {
-                if value.get_all_dry().is_empty() {FilledGround} else {Ground}
-            }
-            _ => {
-                value.identifier
-            }
-        }
-    }
-}
-impl Block{
-
-    fn start_initial_fill(&mut self,corner : Corner) {
-        if self.identifier == FilledGround || self.identifier == Ground {
-            self.block = [[Filled,Filled,Filled],[Filled,Filled,Filled],[Filled,Filled,Filled]]
-        }else {
-            match corner {
-                Corner::NW => {
-                    self.block[0][0] = Filled;
-                    self.block[0][2] = Filled;
-                    self.block[2][0] = Filled;
-                }
-                Corner::NE => {
-                    self.block[0][0] = Filled;
-                    self.block[0][2] = Filled;
-                    self.block[2][2] = Filled;
-                }
-                Corner::SW => {
-                    self.block[0][0] = Filled;
-                    self.block[2][2] = Filled;
-                    self.block[2][0] = Filled;
-                }
-                Corner::SE => {
-                    self.block[2][0] = Filled;
-                    self.block[0][2] = Filled;
-                    self.block[2][2] = Filled;
-                }
-            }
-        }
-    }
-
-    fn get_all_filled(&self) -> Vec<(usize,usize)> {
-        self.block
-            .iter()
-            .enumerate()
-            .map(|(y,e)|{
-                e.iter()
-                    .enumerate()
-                    .flat_map(|(x,e)|if e == &Filled { Some((x , y )) } else {None})
-                    .collect_vec()
-            })
-            .flatten()
-            .collect_vec()
-    }
-
-    fn get_all_dry(&self) -> Vec<(usize,usize)> {
-        self.block
-            .iter()
-            .enumerate()
-            .map(|(y,e)|{
-                e.iter()
-                    .enumerate()
-                    .flat_map(|(x,e)|if e == &Dry { Some((x, y)) } else {None})
-                    .collect_vec()
-            })
-            .flatten()
-            .collect_vec()
-    }
-
-    fn get_all_adjacent_points_from_point(point : &(isize,isize)) -> Vec<(usize, usize)> {
-
-        let points = vec![
-            (point.0+1,point.1),
-            (point.0-1,point.1),
-            (point.0,point.1+1),
-            (point.0,point.1-1),
-        ].iter()
-            .filter(|e| e.0 >= 0 || e.1 >= 0 && e.0 <= 2 || e.1 <= 2 )
-            .map(|(x,y)| (usize::try_from(*x).unwrap() , usize::try_from(*y).unwrap() ))
-            .collect_vec();
-        points
-    }
-
-    fn fill_point(&mut self,point : &(usize,usize)){
-        self.block[point.1][point.0] = Filled
-    }
-
-    fn fill_all_possible(&mut self) {
-        let fill_iter = unfold((self.get_all_filled()),| acc|{
-            //get all unfilled targets by filled (acc)
-            let unfilled = self.get_all_dry();
-            let targets = acc.iter()
-                .map(|e| Self::get_all_adjacent_points_from_point(&(e.0 as isize, e.1 as isize)))
-                .flatten()
-                .dedup()
-                .filter(|e|unfilled.contains(e))
-                .collect_vec();
-
-            if targets.is_empty(){
-                None
-            } else {
-                //Fill targets
-
-                targets.iter()
-                    .for_each(|c| { &self.fill_point(c); });
-                //get new filled
-                let new_filled = self.get_all_filled();
-                //Set acc
-                *acc = new_filled;
-                Some(acc.clone())
-            }
-        });
-        fill_iter.last();
-    }
-    //(NORTH,SOUTH,EAST,WEST)
-    //(Dry,Dry,Dry),(Filled,Filled,Filled)...
-    fn get_block_side_fill_stamps(&self) -> [DirectionWithBLockTypes; 4] {
-        [
-            NORTH(self.block[0][0],self.block[0][1],self.block[0][2]),
-            SOUTH(self.block[2][0],self.block[2][1],self.block[2][2]),
-            EAST(self.block[0][3],self.block[1][2],self.block[2][2]),
-            WEST(self.block[0][0],self.block[1][0],self.block[2][0])
-        ]
-    }
-
-    fn get_block_side_fill(&self, direction: Direction) -> DirectionWithBLockTypes {
-        match direction {
-            Direction::NORTH => {NORTH(self.block[0][0],self.block[0][1],self.block[0][2])}
-            Direction::SOUTH => {SOUTH(self.block[2][0],self.block[2][1],self.block[2][2])}
-            Direction::EAST => {EAST(self.block[0][3],self.block[1][2],self.block[2][2])}
-            Direction::WEST => {WEST(self.block[0][0],self.block[1][0],self.block[2][0])}
-        }
-    }
-    //Fills from the opposite direction North -> South
-    pub fn fill_map_block_from_direction(&mut self, direction : &DirectionWithBLockTypes) -> bool{
-        match direction {
-            NORTH(a, _ , c) => {
-                if self.block[2][0] == *a &&  self.block[2][2] == *c {
-                    false
-                } else {
-                    if self.block[2][0] != Filled {self.block[2][0] = *a;}
-                    if self.block[2][2] != Filled {self.block[2][0] = *c;}
-                    self.fill_all_possible();
-                    true
-                }
-            }
-            SOUTH(a, _, c) => {
-                if self.block[0][0] == *a &&  self.block[0][2] == *c {
-                    false
-                } else {
-                    if self.block[0][0] != Filled {self.block[0][0] = *a;}
-                    if self.block[0][2] != Filled {self.block[0][2] = *c;}
-                    self.fill_all_possible();
-                    true
-                }
-            }
-            EAST(a, _, c) => {
-                if self.block[0][0] == *a &&  self.block[2][0] == *c {
-                    false
-                } else {
-                    if self.block[0][0] != Filled {self.block[0][0] = *a;}
-                    if self.block[2][0] != Filled {self.block[2][0] = *c;}
-                    self.fill_all_possible();
-                    true
-                }
-            }
-            WEST(a, _, c) => {
-                if self.block[0][2] == *a &&  self.block[2][2] == *c {
-                    false
-                } else {
-                    if self.block[0][2] != Filled {self.block[0][2] = *a;}
-                    if self.block[2][2] != Filled {self.block[2][0] = *c;}
-                    self.fill_all_possible();
-                    true
-                }
-            }
-        }
-    }
-
-
 }
 
 
@@ -360,10 +137,6 @@ impl <T>AbstractPosition<T> {
 }
 #[derive(Debug,Clone)]
 struct PipeMap(Vec<Vec<AbstractPosition<Pipes>>>);
-
-#[derive(Debug,Clone)]
-struct PipeFloodFillMap(Vec<Vec<AbstractPosition<Block>>>);
-
 trait DoubleVecMap<T> {
     fn get(&self, x:i32, y: i32) -> Option<&AbstractPosition<T>>;
     fn get_from_tuple(&self, pos : (i32 ,i32)) -> Option<&AbstractPosition<T>>;
@@ -398,29 +171,6 @@ impl DoubleVecMap<Pipes> for PipeMap {
         self.0[y as usize][x as usize] = pos
     }
 }
-
-impl DoubleVecMap<Block> for PipeFloodFillMap {
-    fn get(&self, x:i32, y: i32) -> Option<&AbstractPosition<Block>> {
-        if x <0 || y < 0 {return None}
-        self.0.get(y as usize).and_then(|e|e.get(x as usize))
-    }
-    fn get_from_tuple(&self, pos : (i32 ,i32)) -> Option<&AbstractPosition<Block>> {
-        self.get(pos.0,pos.1)
-    }
-    fn get_mut(&mut self, x: i32, y: i32) -> Option<&mut AbstractPosition<Block>> {
-        if x <0 || y < 0 {return None}
-        self.0.get_mut(y as usize).and_then(|e|e.get_mut(x as usize))
-    }
-
-    fn get_from_tuple_mut(&mut self, pos: (i32, i32)) -> Option<&mut AbstractPosition<Block>> {
-        self.get_mut(pos.0,pos.1)
-    }
-
-    fn set_pos(&mut self, pos: AbstractPosition<Block>) {
-        todo!()
-    }
-}
-
 
 impl PipeMap {
 
@@ -631,23 +381,6 @@ enum State {OUT, IN}
     }
 }
 
-impl Into<PipeMap> for PipeFloodFillMap {
-    fn into(self) -> PipeMap {
-        let v =self.0
-            .iter()
-            .map(|e| {
-                e.iter().map(|e| {
-                    let x = Pipes::from(e.value.clone());
-                    AbstractPosition{value :x , x: e.x, y: e.y }
-                })
-
-                    .collect_vec()
-            })
-            .collect_vec();
-
-        PipeMap(v)
-    }
-}
 
 struct PointScore {
     x : usize,
