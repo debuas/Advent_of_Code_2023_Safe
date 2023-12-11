@@ -1,18 +1,7 @@
-use std::borrow::Borrow;
-use std::any::Any;
-use std::cell::RefCell;
-use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
-use std::usize;
-use glam::{I64Vec2, IVec2, Vec2Swizzles};
-
-
-use itertools::{Itertools, unfold};
-
-
-use tracing::{debug, info, instrument};
-use tracing::field::debug;
+use glam::{I64Vec2};
+use itertools::{Itertools};
+use tracing::{debug, info,};
 use crate::day11::day11::Observation::{Galaxy, Space};
 
 
@@ -38,12 +27,7 @@ enum Observation {
 
 }
 
-
-
-
 pub fn from_input_part_1(input : &str, factor : i64) -> HashMap<(I64Vec2, I64Vec2), u64> {
-
-
     // All Galaxies
     let galaxy_vec = input
         .lines()
@@ -70,8 +54,6 @@ pub fn from_input_part_1(input : &str, factor : i64) -> HashMap<(I64Vec2, I64Vec
     let void_y: HashSet<i64> = HashSet::from_iter(galaxy_vec.iter().filter_map(|e| { if let Space(v) = e { Some(v.y) } else { None } }));
     let galaxy_x: HashSet<i64> = HashSet::from_iter(galaxy_vec.iter().filter_map(|e| { if let Galaxy(v) = e { Some(v.x) } else { None } }));
     let galaxy_y: HashSet<i64> = HashSet::from_iter(galaxy_vec.iter().filter_map(|e| { if let Galaxy(v) = e { Some(v.y) } else { None } }));
-
-
     //get all intersections beetween Galaxies for expansion x
     let expansion_voids_x = void_x.difference(&galaxy_x).collect_vec();
     let expansion_voids_y = void_y.difference(&galaxy_y).collect_vec();
@@ -97,17 +79,8 @@ pub fn from_input_part_1(input : &str, factor : i64) -> HashMap<(I64Vec2, I64Vec
         .map(|a| {
             let first = *a.first().unwrap().clone();
             let last = *a.last().unwrap().clone();
-            let rangex =  min(first.x,last.x) ..max(first.x,last.x);
-            let rangey =  min(first.y,last.y) ..max(first.y,last.y);
-
-            let x =
-                //rangex.fold(0,|acc,e| if expansion_voids_x.contains(&&e) {acc + factor} else {acc + 1 } )
-                first.x.abs_diff(last.x)
-            ;
-            let y =
-                //rangey.fold(0,|acc,e| if expansion_voids_y.contains(&&e) {acc + factor} else { acc+ 1 })
-                first.y.abs_diff(last.y);
-                    ;
+            let x =first.x.abs_diff(last.x);
+            let y =first.y.abs_diff(last.y);
             ((first, last),
                  x+y
             )
@@ -115,26 +88,15 @@ pub fn from_input_part_1(input : &str, factor : i64) -> HashMap<(I64Vec2, I64Vec
         .collect_vec()
         ;
     let distance_map : HashMap<(I64Vec2, I64Vec2), u64> = HashMap::from_iter(distances);
-
     debug!("Distances : {:#?}",distance_map);
     distance_map
 }
-
-
-pub fn from_input_part_2(input : &str )  {
-
-
-
-
-}
-
 #[cfg(test)]
 mod tests {
     use std::sync::Once;
     use itertools::Itertools;
-    use tracing::{info};
     use tracing_test::traced_test;
-    use super::{from_input_part_1, from_input_part_2};
+    use super::{from_input_part_1};
 
     static INIT : Once = Once::new();
 
