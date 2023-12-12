@@ -1,4 +1,5 @@
 use crate::day10::day10::{run_day_10_part_1, run_day_10_part_2};
+use crate::day11::day11::{run_day_11_part_1, run_day_11_part_2};
 use crate::day1::part1::run_day1_part_1;
 
 
@@ -23,6 +24,7 @@ mod day7;
 mod day8;
 mod day9;
 mod day10;
+mod day11;
 
 fn main() {
     tracing_subscriber::fmt::init();
@@ -48,5 +50,7 @@ fn main() {
     //run_day_9_part_1();
     //run_day_9_part_2();
     //run_day_10_part_1();
-    run_day_10_part_2();
+    //run_day_10_part_2();
+    run_day_11_part_1();
+    run_day_11_part_2();
 }
