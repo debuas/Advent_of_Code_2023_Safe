@@ -1,9 +1,13 @@
+use rayon::iter::ParallelIterator;
 use std::collections::{HashMap, HashSet};
 use std::io::repeat;
 use std::num::NonZeroI8;
 use std::os::linux::raw::stat;
+use chrono::Duration;
 use glam::{I64Vec2};
 use itertools::{Itertools, unfold};
+use rayon::iter::IntoParallelIterator;
+use rayon::prelude::{IntoParallelRefIterator};
 use tracing::{debug, info,};
 use tracing::field::debug;
 use tracing_subscriber::registry::SpanRef;
@@ -152,41 +156,54 @@ fn calculate(cache: &mut HashMap<(usize, usize, usize), usize>, s: &[Status], wi
 
 
 pub fn from_input_part_1(input : &str) -> usize {
-    let mut cache = HashMap::new();
+    let start_time = chrono::Utc::now();
     let springs = input
         .lines()
         .map(Spring::from_line)
         .collect_vec();
+    let start_time_recursion = chrono::Utc::now();
     let res = springs
-        .iter()
+        .par_iter()
         .map(|s| {
+            let mut cache = HashMap::new();
             let res = calculate(&mut cache, &s.data.clone(), None, s.defect_count.as_slice());
             cache.clear();
             debug!("Calculated {}",res);
             res
         })
         .sum::<usize>();
-
+    let end_time = chrono::Utc::now();
+    let time_spend = end_time-start_time;
+    let time_recursion = end_time-start_time_recursion;
+    info!("Total Time Spend    : {:?}", time_spend.to_std().unwrap());
+    info!("Recursion Time Spend: {:?}", time_recursion.to_std().unwrap());
     res
 
 }
 
 pub fn from_input_part_2(input : &str) -> usize {
-    let mut cache = HashMap::new();
+
+    let start_time = chrono::Utc::now();
     let springs = input
         .lines()
         .map(Spring::from_line_p2)
         .collect_vec();
+    let start_time_recursion = chrono::Utc::now();
     let res = springs
-        .iter()
+        .par_iter()
         .map(|s| {
+            let mut cache = HashMap::new();
             let res = calculate(&mut cache, &s.data.clone(), None, s.defect_count.as_slice());
             cache.clear();
             debug!("Calculated {}",res);
             res
         })
         .sum::<usize>();
-
+    let end_time = chrono::Utc::now();
+    let time_spend = end_time-start_time;
+    let time_recursion = end_time-start_time_recursion;
+    info!("Total Time Spend    : {:?}", time_spend.to_std().unwrap());
+    info!("Recursion Time Spend: {:?}", time_recursion.to_std().unwrap());
     res
 
 }
