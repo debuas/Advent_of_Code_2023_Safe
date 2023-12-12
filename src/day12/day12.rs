@@ -1,17 +1,11 @@
 use rayon::iter::ParallelIterator;
-use std::collections::{HashMap, HashSet};
-use std::io::repeat;
-use std::num::NonZeroI8;
-use std::os::linux::raw::stat;
-use chrono::Duration;
-use glam::{I64Vec2};
-use itertools::{Itertools, unfold};
+use std::collections::{HashMap};
+
+use itertools::{Itertools};
 use rayon::iter::IntoParallelIterator;
 use rayon::prelude::{IntoParallelRefIterator};
 use tracing::{debug, info,};
-use tracing::field::debug;
-use tracing_subscriber::registry::SpanRef;
-use crate::day12::day12::CalculationResults::{ContinueLoop, EndOfLoop};
+
 use crate::day12::day12::Status::{Defect, Operational, Unknown};
 
 
@@ -211,12 +205,9 @@ pub fn from_input_part_2(input : &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Once;
-    use itertools::Itertools;
-    use tracing_test::traced_test;
+
     use super::{from_input_part_1, from_input_part_2};
 
-    static INIT : Once = Once::new();
 
 
     #[test_log::test]
