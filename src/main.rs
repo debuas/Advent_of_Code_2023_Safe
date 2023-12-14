@@ -2,6 +2,7 @@ use crate::day10::day10::{run_day_10_part_1, run_day_10_part_2};
 use crate::day11::day11::{run_day_11_part_1, run_day_11_part_2};
 use crate::day12::day12::{run_day_12_part_1, run_day_12_part_2};
 use crate::day13::day13::{run_day_13_part_1, run_day_13_part_2};
+use crate::day14::day14::run_day_14_part_1;
 use crate::day1::part1::run_day1_part_1;
 
 
@@ -29,6 +30,7 @@ mod day10;
 mod day11;
 mod day12;
 mod day13;
+mod day14;
 
 fn main() {
     tracing_subscriber::fmt::init();
@@ -55,10 +57,11 @@ fn main() {
     //run_day_9_part_2();
     //run_day_10_part_1();
     //run_day_10_part_2();
-    run_day_11_part_1();
-    run_day_11_part_2();
-    run_day_12_part_1();
-    run_day_12_part_2();
-    run_day_13_part_1();
-    run_day_13_part_2();
+    //run_day_11_part_1();
+    //run_day_11_part_2();
+    //run_day_12_part_1();
+    //run_day_12_part_2();
+    //run_day_13_part_1();
+    //run_day_13_part_2();
+    run_day_14_part_1();
 }
