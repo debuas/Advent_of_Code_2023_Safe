@@ -91,8 +91,11 @@ pub fn from_input_part_2(input : &str) -> usize {
         .into_iter()
         .map(|s| {
             debug!("String: '{}'",s );
-            let res =  (s.meta_hash(),BoxM::from_string(s));
-
+            let b = BoxM::from_string(s);
+            let res = match &b {
+                Remove(a) => {(a.as_str().meta_hash(),b)}
+                Insert(v) => {(v.0.as_str().meta_hash(),b)}
+            };
             debug!("hashed: '{:?}'",res );
             res
         })
@@ -128,10 +131,15 @@ pub fn from_input_part_2(input : &str) -> usize {
     let res = boxes.iter()
         .enumerate()
         .fold(0,|acc,(i,(k,v))|{
-            acc + v.iter().enumerate().fold(0,|acc,(i2,b)|{
+            let res = acc + v.iter().enumerate().fold(0,|acc,(i2,b)|{
+                let res =
+                    acc +((k+1) as usize * (i2+1)*b.1 as usize) as usize;
+                debug!("Box :  {} index {} = {} , v = {} , key : {}",k,i2,b.1,res,b.0  );
+                res
+            });
+            debug!("Res = {}",res);
+            res
 
-                (i+1)*(i2+1)*b.1 as usize
-            })
         });
 
     res
