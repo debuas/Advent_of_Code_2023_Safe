@@ -12,7 +12,7 @@ use tracing::{debug, info, warn};
 use tracing::field::debug;
 
 
-pub fn run_day_14_part_1() {
+pub fn run_day_15_part_1() {
     let  input = include_str!("input.txt");
     let res = from_input_part_1(input);
 
@@ -20,7 +20,7 @@ pub fn run_day_14_part_1() {
     println!("Result Part 1:  {:?}" , res)
 }
 
-pub fn run_day_14_part_2() {
+pub fn run_day_15_part_2() {
     let  input = include_str!("input.txt");
     let res = from_input_part_2(input,1000000000);
 
@@ -48,10 +48,21 @@ impl AocHash for &str{
 
 
 
-pub fn from_input_part_1(input : &str) -> usize {
+pub fn from_input_part_1(input : &str) -> u64 {
+    let res = input
+        .split(',')
+        .collect_vec()
+        .into_par_iter()
+        .map(|s| {
+            debug!("String: '{}'",s );
+            let res =s.meta_hash();
+            debug!("hashed: '{}'",res );
+            res
+        }
 
-
-    todo!()
+        )
+        .sum::<u64>();
+    res
 }
 
 pub fn from_input_part_2(input : &str, amount : usize) -> usize {
@@ -73,7 +84,7 @@ mod tests {
         let  input = include_str!("testInput1.txt");
         let res = from_input_part_1(input);
 
-        assert_eq!(136,res)
+        assert_eq!(1320,res)
 
 
 
